@@ -88,7 +88,7 @@ Identifies adversarial inputs before they propagate into the agent.
 ### 🧠 Layer 3: Cognition Protection
 
 Protects long-term memory and contextual continuity from poisoning.
-<video src="https://github.com/user-attachments/assets/293103d3-ec1e-4256-a7c3-c92770ee0c43" controls preload="metadata" width="480"></video>
+<video src="https://github.com/user-attachments/assets/914c0d4b-32ee-4336-9de9-3dff9ccc1bc8" controls preload="metadata" width="480"></video>
 <video src="https://github.com/user-attachments/assets/33ee07a9-8311-4952-9439-d22471b9939c" controls preload="metadata" width="480"></video>
 
 ### 🎯 Layer 4: Decision Alignment
