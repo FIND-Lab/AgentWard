@@ -158,10 +158,11 @@ Enforces safety boundaries at the point of execution.
   - 🚀 Checkpoint-based Memory Recovery
   - 🚀 Context Drift Detection & Correction
 - 🎯 Decision Alignment Layer
-  - ✅ Agent Decision vs User Intent Consistency Validation
-  - ✅ Sensitive Operation Parameter Detection & Compliance Verification
-  - 🚀 Inference Trajectory Logic Audit
-  - 🚀 High-Risk Decision Action Recognition & Rewriting
+  - ✅ Agent Decision vs. User Intent Consistency Validation
+  - 🚀 Static Rule Filtering & Compliance Verification
+  - 🚀 Multi-Step Trajectory Logic Audit
+  - 🚀 Risk-Driven Dynamic Permission Allocation
+  - 🚀 High-Risk Action Recognition & Safe Rewriting
 - 🔧 Execution Control Layer
   - ✅ Real-Time Interception & Blocking of High-Risk System Instructions
   - ✅ Behavioral Intent Analysis & Risk Assessment
