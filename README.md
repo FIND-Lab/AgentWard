@@ -155,6 +155,7 @@ Enforces safety boundaries at the point of execution.
   - ✅ Memory Consistency Evaluation & Calibration
   - 🚀 Malicious Memory Library Construction & Threat Matching
   - 🚀 Memory Vectorization & Outlier Detection
+  - 🚀 Checkpoint-based Memory Recovery
   - 🚀 Context Drift Detection & Correction
 - 🎯 Decision Alignment Layer
   - ✅ Agent Decision vs User Intent Consistency Validation
