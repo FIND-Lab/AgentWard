@@ -134,15 +134,16 @@ Enforces safety boundaries at the point of execution.
 - 📐 System Infrastructure Framework
   - ✅ Plugin-Native Modular Architecture
   - ✅ Base Adapters Suite
-  - 🚀 Plug-and-Play Algorithm Replacement Interface
-  - 🚀 System-Level MITM Hooks
+  - ✅ Core Detection Engine
+    - ✅ Heuristic Rule-Based Detection Module
+    - ✅ Intent Risk Judgment System
+    - 🚀 Trust-Based Risk Assessment Capability
 - 🏗️ Foundation Scan Layer
-  - ✅ Rule-Based Injection & Jailbreak Detection
-  - ✅ Input Semantic Coherence Evaluation
-  - ✅ Fragmented Malicious Instruction Detection
-  - 🚀 Multi-Round Stealth Attack Detection
-  - 🚀 Malicious Content Secure Replacement
-  - 🚀 Multi-Modal Injection Attack Detection
+  - ✅ Global & Plugin Configuration Security Check
+  - ✅ Semantic-Based Malicious Skill Detection
+  - 🚀 Skill Source Validation
+  - 🚀 Plugin Dependency Analysis
+  - 🚀 Natural Language & Code Mixed Vulnerability Detection
 - 🧼 Input Sanitization Layer
   - ✅ Rule-Based Injection & Jailbreak Detection
   - ✅ Input Semantic Coherence Evaluation
