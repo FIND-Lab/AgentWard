@@ -51,6 +51,42 @@ export const DECISION_MISALIGN = new Warning(
   ""
 );
 
+export const SYSTEM_DESTRUCTION_DETECTED = new Warning(
+  "System Destruction Command Detected",
+  "The system detected a command that could destroy system files or data.",
+  "Commands like rm -rf /, dd to disk devices, or disk formatting are blocked."
+);
+
+export const PRIVILEGE_ESCALATION_DETECTED = new Warning(
+  "Privilege Escalation Detected",
+  "The system detected a command attempting to elevate privileges dangerously.",
+  "Suspicious sudo usage or permission changes on critical paths are blocked."
+);
+
+export const REMOTE_CODE_EXECUTION_DETECTED = new Warning(
+  "Remote Code Execution Detected",
+  "The system detected an attempt to execute remote code.",
+  "Piping curl/wget output directly to shell is dangerous and blocked."
+);
+
+export const SENSITIVE_DATA_ACCESS_DETECTED = new Warning(
+  "Sensitive Data Access Detected",
+  "The system detected an attempt to access sensitive files.",
+  "Access to password files, SSH keys, API credentials, and environment variables is blocked."
+);
+
+export const REVERSE_SHELL_DETECTED = new Warning(
+  "Reverse Shell Detected",
+  "The system detected a potential reverse shell or backdoor command.",
+  "Network redirects to interactive shells are blocked."
+);
+
+export const RESOURCE_EXHAUSTION_DETECTED = new Warning(
+  "Resource Exhaustion Detected",
+  "The system detected a command that could exhaust system resources.",
+  "Fork bombs, disk fillers, and process killers are blocked."
+);
+
 export const COGNITIVE_STATE_ANOMALY = new Warning(
   "Cognitive State Anomaly Detected",
   "Abnormal patterns detected in memory file modification.",
