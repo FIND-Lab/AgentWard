@@ -77,10 +77,12 @@ AgentWard delivers **system-level security** through five tightly integrated lay
 Ensures the agent starts from a trustworthy foundation.
 
 <div align="center">
-<video src="https://github.com/user-attachments/assets/201a59de-232e-47e9-a57e-515b2b3961e5" controls preload="metadata" width="480"></video>
-<p>English</p>
-<video src="https://github.com/user-attachments/assets/3842d195-635f-4b22-a9ef-1c4a3aaf12bf" controls preload="metadata" width="480"></video>
-<p>中文</p>
+<table>
+<tr>
+<td align="center"><video src="https://github.com/user-attachments/assets/201a59de-232e-47e9-a57e-515b2b3961e5" controls preload="metadata" width="400"></video><p>English</p></td>
+<td align="center"><video src="https://github.com/user-attachments/assets/3842d195-635f-4b22-a9ef-1c4a3aaf12bf" controls preload="metadata" width="400"></video><p>中文</p></td>
+</tr>
+</table>
 </div>
 
 ### 🧼 Layer 2: Input Sanitization
@@ -88,10 +90,12 @@ Ensures the agent starts from a trustworthy foundation.
 Identifies adversarial inputs before they propagate into the agent.
 
 <div align="center">
-<video src="https://github.com/user-attachments/assets/d0ba7218-2e9d-4bba-893c-36bddc2b397d" controls preload="metadata" width="480"></video>
-<p>English</p>
-<video src="https://github.com/user-attachments/assets/9491c8cd-4d30-4b57-8e88-7cc438762cb6" controls preload="metadata" width="480"></video>
-<p>中文</p>
+<table>
+<tr>
+<td align="center"><video src="https://github.com/user-attachments/assets/d0ba7218-2e9d-4bba-893c-36bddc2b397d" controls preload="metadata" width="400"></video><p>English</p></td>
+<td align="center"><video src="https://github.com/user-attachments/assets/9491c8cd-4d30-4b57-8e88-7cc438762cb6" controls preload="metadata" width="400"></video><p>中文</p></td>
+</tr>
+</table>
 </div>
 
 ### 🧠 Layer 3: Cognition Protection
@@ -99,10 +103,12 @@ Identifies adversarial inputs before they propagate into the agent.
 Protects long-term memory and contextual continuity from poisoning.
 
 <div align="center">
-<video src="https://github.com/user-attachments/assets/914c0d4b-32ee-4336-9de9-3dff9ccc1bc8" controls preload="metadata" width="480"></video>
-<p>English</p>
-<video src="https://github.com/user-attachments/assets/33ee07a9-8311-4952-9439-d22471b9939c" controls preload="metadata" width="480"></video>
-<p>中文</p>
+<table>
+<tr>
+<td align="center"><video src="https://github.com/user-attachments/assets/914c0d4b-32ee-4336-9de9-3dff9ccc1bc8" controls preload="metadata" width="400"></video><p>English</p></td>
+<td align="center"><video src="https://github.com/user-attachments/assets/33ee07a9-8311-4952-9439-d22471b9939c" controls preload="metadata" width="400"></video><p>中文</p></td>
+</tr>
+</table>
 </div>
 
 ### 🎯 Layer 4: Decision Alignment
@@ -110,10 +116,12 @@ Protects long-term memory and contextual continuity from poisoning.
 Keeps agent decisions aligned with authorized user intent.
 
 <div align="center">
-<video src="https://github.com/user-attachments/assets/59e0235c-b794-4971-b36d-667279629388" controls preload="metadata" width="480"></video>
-<p>English</p>
-<video src="https://github.com/user-attachments/assets/72cbb62a-d91e-4b09-8b28-84423833c2c4" controls preload="metadata" width="480"></video>
-<p>中文</p>
+<table>
+<tr>
+<td align="center"><video src="https://github.com/user-attachments/assets/59e0235c-b794-4971-b36d-667279629388" controls preload="metadata" width="400"></video><p>English</p></td>
+<td align="center"><video src="https://github.com/user-attachments/assets/72cbb62a-d91e-4b09-8b28-84423833c2c4" controls preload="metadata" width="400"></video><p>中文</p></td>
+</tr>
+</table>
 </div>
 
 ### 🔧 Layer 5: Execution Control
@@ -121,10 +129,12 @@ Keeps agent decisions aligned with authorized user intent.
 Enforces safety boundaries at the point of execution.
 
 <div align="center">
-<video src="https://github.com/user-attachments/assets/eb705acf-12c7-4b86-a3bb-73e8ecfeb249" controls preload="metadata" width="480"></video>
-<p>English</p>
-<video src="https://github.com/user-attachments/assets/39d9886f-4083-45d3-a5c6-d15a13c77ed7" controls preload="metadata" width="480"></video>
-<p>中文</p>
+<table>
+<tr>
+<td align="center"><video src="https://github.com/user-attachments/assets/eb705acf-12c7-4b86-a3bb-73e8ecfeb249" controls preload="metadata" width="400"></video><p>English</p></td>
+<td align="center"><video src="https://github.com/user-attachments/assets/39d9886f-4083-45d3-a5c6-d15a13c77ed7" controls preload="metadata" width="400"></video><p>中文</p></td>
+</tr>
+</table>
 </div>
 
 ## Roadmap
@@ -191,4 +201,3 @@ Our roadmap is structured around a multi-layered defense architecture designed t
 ---
 
 **Authors:** [Qi Li](https://sites.google.com/site/qili2012), [Xinhao Deng](https://xinhao-deng.github.io/), Yixiang Zhang, Jiaqing Wu, Yue Xiao, Rennai Qiu, Zhuoheng Zou, Jiaqi Bai, Jiaxing Song, and Ke Xu  
-**Contact:** qli01@tsinghua.edu.cn (Qi Li)
