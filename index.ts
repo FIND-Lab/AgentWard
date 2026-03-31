@@ -10,10 +10,10 @@ import {
   formatCoverAssistantWarning,
   formatMessageSendingWarning
 } from "./warnings.ts";
-import { detectTrustedBase,type TrustedBaseConfig } from "./layers/trusted-base.ts";
-import { inputDetect } from "./layers/input-sensing.ts";
-import { detectCognitiveStateAnomaly } from "./layers/cognitive-state.ts";
-import { decisionAlignDetect } from "./layers/decision-align.ts";
+import { detectFoundationScan,type FoundationScanConfig } from "./layers/foundation-scan.ts";
+import { inputDetect } from "./layers/input-sanitization.ts";
+import { detectCognitionProtectionAnomaly } from "./layers/cognition-protection.ts";
+import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
 import { initLogger, getLogger } from "./logger.ts";
 import { PersistentWorker, getWorker, setWorker} from "./model-worker-manager.ts";
@@ -33,7 +33,7 @@ function send_message(state: SessionState, content: string) {
 const plugin = {
   id: "agent-ward",
   name: "AgentWard",
-  description: "AgentWard provides multi-layer security protection for the agent system, including input sensing, execution control, decision alignment monitoring, and trusted base verification.",
+  description: "AgentWard provides multi-layer security protection for the agent system, including input sanitization, execution control, decision alignment monitoring, and foundation scan.",
   configSchema: ConfigSchema,
   status: new Map<string, SessionState>(),
   register(api: OpenClawPluginApi) {
@@ -74,28 +74,28 @@ const plugin = {
         state.clear_tags();
         state.historyMessages = event?.messages;
         state.currentMessages = [];
-        state.decisionAlignInfo = [];
+        state.decisionAlignmentInfo = [];
       }
 
-      if (config.layers.trustedBase.enableTrustedBaseDetection && ctx.workspaceDir) {
-        const warning = await detectTrustedBase(
+      if (config.layers.foundationScan.enableFoundationScanDetection && ctx.workspaceDir) {
+        const warning = await detectFoundationScan(
           ctx.workspaceDir,
           getLogger(),
           state,
           api.config,
-          config.layers.trustedBase as TrustedBaseConfig
+          config.layers.foundationScan as FoundationScanConfig
         );
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           api.logger.error(`Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
           state.warning_queue.push(warning); state.warning_head++;
 
-          if (config.layers.trustedBase.enableIntervention) {
-            if (config.layers.trustedBase.blockToolCallOnTrustBaseWarning) {
+          if (config.layers.foundationScan.enableIntervention) {
+            if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning) {
               api.logger.error(`Blocking tool calls due to system prompt security bypass detection.`);
               state.block_tool_call = true;
             }
-            return { prependContext: formatUserPrependWarning(warning, config.layers.trustedBase.blockToolCallOnTrustBaseWarning) }; 
+            return { prependContext: formatUserPrependWarning(warning, config.layers.foundationScan.blockToolCallOnFoundationScanWarning) }; 
           }
         }
       }
@@ -126,8 +126,8 @@ const plugin = {
 
       if (event.message.role == "assistant") {
         state.temp_block_tool_call = false;
-        if (config.layers.decisionAlign.enableDecisionAlignDetection) {
-          const warning = decisionAlignDetect(
+        if (config.layers.decisionAlignment.enableDecisionAlignmentDetection) {
+          const warning = decisionAlignmentDetect(
             state,
             event.message
           );
@@ -135,7 +135,7 @@ const plugin = {
             send_message(state, formatMessageSendingWarning(warning));
             state.warning_queue.push(warning);
             api.logger.warn(`Decision alignment warning: ${warning.type}`);
-            if (config.layers.decisionAlign.enableIntervention) {
+            if (config.layers.decisionAlignment.enableIntervention) {
               state.temp_block_tool_call = true;
             }
           }
@@ -144,19 +144,19 @@ const plugin = {
 
       state.currentMessages!.push(event.message);
 
-      if (event.message.role == "toolResult" && config.layers.inputSensing.enableInputDetection) {
+      if (event.message.role == "toolResult" && config.layers.inputSanitization.enableInputDetection) {
         const warning = inputDetect(event.message.content);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."));
-          const warningText = formatToolResultWarning(warning, config.layers.inputSensing.blockHarmfulInput);
+          const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
           api.logger.error(`Detecting ${warning.type}. Blocking future tool calls...`);
           state.warning_queue.push(warning);
-          if (config.layers.inputSensing.enableIntervention) {
+          if (config.layers.inputSanitization.enableIntervention) {
             state.block_tool_call = true;
-            if (config.layers.inputSensing.coverContaminatedResponse)
+            if (config.layers.inputSanitization.coverContaminatedResponse)
               state.cover_response_by_warning = true;
           }
-          let content = config.layers.inputSensing.blockHarmfulInput ? [{
+          let content = config.layers.inputSanitization.blockHarmfulInput ? [{
             type: "text",
             text: warningText
           }] : [...event.message.content, {
@@ -193,12 +193,12 @@ const plugin = {
         }
       }
 
-      if (config.layers.cognitiveState.enableMemWriteDetection) {
-        const warning = detectCognitiveStateAnomaly(event.toolName, event.params);
+      if (config.layers.cognitionProtection.enableMemWriteDetection) {
+        const warning = detectCognitionProtectionAnomaly(event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
-          api.logger.error(`Cognitive state anomaly detected: ${event.toolName}`);
-          if (config.layers.cognitiveState.enableIntervention) {
+          api.logger.error(`Cognition state anomaly detected: ${event.toolName}`);
+          if (config.layers.cognitionProtection.enableIntervention) {
             return {
               block: true,
               blockReason: formatToolCallWarning(warning, true, true),

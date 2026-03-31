@@ -88,7 +88,7 @@ export const RESOURCE_EXHAUSTION_DETECTED = new Warning(
 );
 
 export const COGNITIVE_STATE_ANOMALY = new Warning(
-  "Cognitive State Anomaly Detected",
+  "Cognition State Anomaly Detected",
   "Abnormal patterns detected in memory file modification.",
   "Tell the user that some suspicious content is detected in the memory file modification, and the modification is blocked."
 );

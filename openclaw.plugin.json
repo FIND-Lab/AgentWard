@@ -10,11 +10,11 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "trustedBase": {
+          "foundationScan": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "enableTrustedBaseDetection": {
+              "enableFoundationScanDetection": {
                 "type": "boolean",
                 "description": "When enabled, detects security bypass instructions in system prompt files."
               },
@@ -22,7 +22,7 @@
                 "type": "boolean",
                 "description": "When true, executes intervention measures (blocking tool calls) when threats are detected. When false, only performs detection, logging, and warning notifications without intervention."
               },
-              "blockToolCallOnTrustBaseWarning": {
+              "blockToolCallOnFoundationScanWarning": {
                 "type": "boolean",
                 "description": "When true, tool calls are blocked when security bypass is detected in system prompt files."
               },
@@ -64,7 +64,7 @@
               }
             }
           },
-          "inputSensing": {
+          "inputSanitization": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -86,7 +86,7 @@
               }
             }
           },
-          "cognitiveState": {
+          "cognitionProtection": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -100,11 +100,11 @@
               }
             }
           },
-          "decisionAlign": {
+          "decisionAlignment": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "enableDecisionAlignDetection": {
+              "enableDecisionAlignmentDetection": {
                 "type": "boolean",
                 "description": "When enabled, monitors assistant responses for decision alignment issues."
               },
@@ -188,7 +188,7 @@
     }
   },
   "uiHints": {
-    "layers.trustedBase.enableTrustedBaseDetection": {
+    "layers.foundationScan.enableFoundationScanDetection": {
       "label": "Enable System Prompt Detection",
       "help": "When enabled, detects security bypass instructions in system prompt files."
     },
@@ -212,43 +212,43 @@
       "label": "LLM API Key Env",
       "help": "Environment variable name for API key. Default: AGENT_WARD_API_KEY."
     },
-    "layers.trustedBase.enableIntervention": {
-      "label": "Enable Trusted Base Intervention",
+    "layers.foundationScan.enableIntervention": {
+      "label": "Enable Foundation Scan Intervention",
       "help": "When true, blocks tool calls when threats are detected. When false, only logs and sends warnings without blocking."
     },
-    "layers.trustedBase.blockToolCallOnTrustBaseWarning": {
+    "layers.foundationScan.blockToolCallOnFoundationScanWarning": {
       "label": "Block Tool Calls on System Prompt Warning",
       "help": "When true, tool calls are blocked when security bypass is detected in system prompt files."
     },
-    "layers.inputSensing.enableInputDetection": {
+    "layers.inputSanitization.enableInputDetection": {
       "label": "Enable Input Detection",
       "help": "When enabled, detects profanity and injection attempts in tool results."
     },
-    "layers.inputSensing.enableIntervention": {
-      "label": "Enable Input Sensing Intervention",
+    "layers.inputSanitization.enableIntervention": {
+      "label": "Enable Input Sanitization Intervention",
       "help": "When true, blocks tool calls and covers responses when threats are detected. When false, only logs and sends warnings without intervention."
     },
-    "layers.inputSensing.blockHarmfulInput": {
+    "layers.inputSanitization.blockHarmfulInput": {
       "label": "Block Harmful Input",
       "help": "When true, harmful content is blocked entirely. When false, a warning is appended to the content."
     },
-    "layers.inputSensing.coverContaminatedResponse": {
+    "layers.inputSanitization.coverContaminatedResponse": {
       "label": "Cover Contaminated Response",
       "help": "When true, replaces the assistant's response (after receiving harmful tool results) with warning messages. Original assistant responses are not persisted."
     },
-    "layers.cognitiveState.enableMemWriteDetection": {
+    "layers.cognitionProtection.enableMemWriteDetection": {
       "label": "Enable Memory Write Detection",
       "help": "When enabled, detects abnormal patterns in memory file modifications."
     },
-    "layers.cognitiveState.enableIntervention": {
-      "label": "Enable Cognitive State Intervention",
+    "layers.cognitionProtection.enableIntervention": {
+      "label": "Enable Cognition State Intervention",
       "help": "When true, blocks tool calls when memory anomalies are detected. When false, only logs and sends warnings without blocking."
     },
-    "layers.decisionAlign.enableDecisionAlignDetection": {
+    "layers.decisionAlignment.enableDecisionAlignmentDetection": {
       "label": "Enable Decision Alignment Detection",
       "help": "When enabled, monitors assistant responses for decision alignment issues."
     },
-    "layers.decisionAlign.enableIntervention": {
+    "layers.decisionAlignment.enableIntervention": {
       "label": "Enable Decision Align Intervention",
       "help": "When true, temporarily blocks tool calls when decision misalignment is detected. When false, only logs and sends warnings without blocking."
     },

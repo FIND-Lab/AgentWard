@@ -7,10 +7,10 @@ export class PluginConfig {
     apiKeyEnv: string;
   };
   layers: {
-    trustedBase: {
-      enableTrustedBaseDetection: boolean;
+    foundationScan: {
+      enableFoundationScanDetection: boolean;
       enableIntervention: boolean;
-      blockToolCallOnTrustBaseWarning: boolean;
+      blockToolCallOnFoundationScanWarning: boolean;
       detectMaliciousSkills: {
         enable: boolean;
         ruleBasedDetection: boolean;
@@ -22,18 +22,18 @@ export class PluginConfig {
         enable: boolean;
       };
     };
-    inputSensing: {
+    inputSanitization: {
       enableInputDetection: boolean;
       enableIntervention: boolean;
       blockHarmfulInput: boolean;
       coverContaminatedResponse: boolean;
     };
-    cognitiveState: {
+    cognitionProtection: {
       enableMemWriteDetection: boolean;
       enableIntervention: boolean;
     };
-    decisionAlign: {
-      enableDecisionAlignDetection: boolean;
+    decisionAlignment: {
+      enableDecisionAlignmentDetection: boolean;
       enableIntervention: boolean;
     };
     execControl: {
@@ -60,10 +60,10 @@ export class PluginConfig {
     };
 
     this.layers = {
-      trustedBase: {
-        enableTrustedBaseDetection: true,
+      foundationScan: {
+        enableFoundationScanDetection: true,
         enableIntervention: true,
-        blockToolCallOnTrustBaseWarning: false,
+        blockToolCallOnFoundationScanWarning: false,
         detectMaliciousSkills: {
           enable: true,
           ruleBasedDetection: true,
@@ -75,18 +75,18 @@ export class PluginConfig {
           enable: true,
         },
       },
-      inputSensing: {
+      inputSanitization: {
         enableInputDetection: true,
         enableIntervention: true,
         blockHarmfulInput: false,
-        coverContaminatedResponse: true,
+        coverContaminatedResponse: false,
       },
-      cognitiveState: {
+      cognitionProtection: {
         enableMemWriteDetection: true,
         enableIntervention: true,
       },
-      decisionAlign: {
-        enableDecisionAlignDetection: true,
+      decisionAlignment: {
+        enableDecisionAlignmentDetection: true,
         enableIntervention: true,
       },
       execControl: {
@@ -112,62 +112,62 @@ export class PluginConfig {
 
     const layers = (raw as Record<string, unknown>).layers;
     if (layers && typeof layers === "object") {
-      const trustedBase = (layers as Record<string, unknown>).trustedBase as Record<string, unknown> | undefined;
-      if (trustedBase) {
-        if (typeof trustedBase.enableTrustedBaseDetection === "boolean")
-          config.layers.trustedBase.enableTrustedBaseDetection = trustedBase.enableTrustedBaseDetection;
-        if (typeof trustedBase.enableIntervention === "boolean")
-          config.layers.trustedBase.enableIntervention = trustedBase.enableIntervention;
-        if (typeof trustedBase.blockToolCallOnTrustBaseWarning === "boolean")
-          config.layers.trustedBase.blockToolCallOnTrustBaseWarning = trustedBase.blockToolCallOnTrustBaseWarning;
+      const foundationScan = (layers as Record<string, unknown>).foundationScan as Record<string, unknown> | undefined;
+      if (foundationScan) {
+        if (typeof foundationScan.enableFoundationScanDetection === "boolean")
+          config.layers.foundationScan.enableFoundationScanDetection = foundationScan.enableFoundationScanDetection;
+        if (typeof foundationScan.enableIntervention === "boolean")
+          config.layers.foundationScan.enableIntervention = foundationScan.enableIntervention;
+        if (typeof foundationScan.blockToolCallOnFoundationScanWarning === "boolean")
+          config.layers.foundationScan.blockToolCallOnFoundationScanWarning = foundationScan.blockToolCallOnFoundationScanWarning;
         
-        const detectMaliciousSkills = (trustedBase as Record<string, unknown>).detectMaliciousSkills as Record<string, unknown> | undefined;
+        const detectMaliciousSkills = (foundationScan as Record<string, unknown>).detectMaliciousSkills as Record<string, unknown> | undefined;
         if (detectMaliciousSkills) {
           if (typeof detectMaliciousSkills.enable === "boolean")
-            config.layers.trustedBase.detectMaliciousSkills.enable = detectMaliciousSkills.enable;
+            config.layers.foundationScan.detectMaliciousSkills.enable = detectMaliciousSkills.enable;
           if (typeof detectMaliciousSkills.ruleBasedDetection === "boolean")
-            config.layers.trustedBase.detectMaliciousSkills.ruleBasedDetection = detectMaliciousSkills.ruleBasedDetection;
+            config.layers.foundationScan.detectMaliciousSkills.ruleBasedDetection = detectMaliciousSkills.ruleBasedDetection;
           if (typeof detectMaliciousSkills.semanticDetection === "boolean")
-            config.layers.trustedBase.detectMaliciousSkills.semanticDetection = detectMaliciousSkills.semanticDetection;
+            config.layers.foundationScan.detectMaliciousSkills.semanticDetection = detectMaliciousSkills.semanticDetection;
           if (typeof detectMaliciousSkills.maxContentLength === "number" && detectMaliciousSkills.maxContentLength > 0)
-            config.layers.trustedBase.detectMaliciousSkills.maxContentLength = detectMaliciousSkills.maxContentLength;
+            config.layers.foundationScan.detectMaliciousSkills.maxContentLength = detectMaliciousSkills.maxContentLength;
           if (typeof detectMaliciousSkills.maxConcurrency === "number" && detectMaliciousSkills.maxConcurrency > 0)
-            config.layers.trustedBase.detectMaliciousSkills.maxConcurrency = detectMaliciousSkills.maxConcurrency;
+            config.layers.foundationScan.detectMaliciousSkills.maxConcurrency = detectMaliciousSkills.maxConcurrency;
         }
         
-        const detectMisConfiguration = (trustedBase as Record<string, unknown>).detectMisConfiguration as Record<string, unknown> | undefined;
+        const detectMisConfiguration = (foundationScan as Record<string, unknown>).detectMisConfiguration as Record<string, unknown> | undefined;
         if (detectMisConfiguration) {
           if (typeof detectMisConfiguration.enable === "boolean")
-            config.layers.trustedBase.detectMisConfiguration.enable = detectMisConfiguration.enable;
+            config.layers.foundationScan.detectMisConfiguration.enable = detectMisConfiguration.enable;
         }
       }
 
-      const inputSensing = (layers as Record<string, unknown>).inputSensing as Record<string, unknown> | undefined;
-      if (inputSensing) {
-        if (typeof inputSensing.enableInputDetection === "boolean")
-          config.layers.inputSensing.enableInputDetection = inputSensing.enableInputDetection;
-        if (typeof inputSensing.enableIntervention === "boolean")
-          config.layers.inputSensing.enableIntervention = inputSensing.enableIntervention;
-        if (typeof inputSensing.blockHarmfulInput === "boolean")
-          config.layers.inputSensing.blockHarmfulInput = inputSensing.blockHarmfulInput;
-        if (typeof inputSensing.coverContaminatedResponse === "boolean")
-          config.layers.inputSensing.coverContaminatedResponse = inputSensing.coverContaminatedResponse;
+      const inputSanitization = (layers as Record<string, unknown>).inputSanitization as Record<string, unknown> | undefined;
+      if (inputSanitization) {
+        if (typeof inputSanitization.enableInputDetection === "boolean")
+          config.layers.inputSanitization.enableInputDetection = inputSanitization.enableInputDetection;
+        if (typeof inputSanitization.enableIntervention === "boolean")
+          config.layers.inputSanitization.enableIntervention = inputSanitization.enableIntervention;
+        if (typeof inputSanitization.blockHarmfulInput === "boolean")
+          config.layers.inputSanitization.blockHarmfulInput = inputSanitization.blockHarmfulInput;
+        if (typeof inputSanitization.coverContaminatedResponse === "boolean")
+          config.layers.inputSanitization.coverContaminatedResponse = inputSanitization.coverContaminatedResponse;
       }
 
-      const cognitiveState = (layers as Record<string, unknown>).cognitiveState as Record<string, unknown> | undefined;
-      if (cognitiveState) {
-        if (typeof cognitiveState.enableMemWriteDetection === "boolean")
-          config.layers.cognitiveState.enableMemWriteDetection = cognitiveState.enableMemWriteDetection;
-        if (typeof cognitiveState.enableIntervention === "boolean")
-          config.layers.cognitiveState.enableIntervention = cognitiveState.enableIntervention;
+      const cognitionProtection = (layers as Record<string, unknown>).cognitionProtection as Record<string, unknown> | undefined;
+      if (cognitionProtection) {
+        if (typeof cognitionProtection.enableMemWriteDetection === "boolean")
+          config.layers.cognitionProtection.enableMemWriteDetection = cognitionProtection.enableMemWriteDetection;
+        if (typeof cognitionProtection.enableIntervention === "boolean")
+          config.layers.cognitionProtection.enableIntervention = cognitionProtection.enableIntervention;
       }
 
-      const decisionAlign = (layers as Record<string, unknown>).decisionAlign as Record<string, unknown> | undefined;
-      if (decisionAlign) {
-        if (typeof decisionAlign.enableDecisionAlignDetection === "boolean")
-          config.layers.decisionAlign.enableDecisionAlignDetection = decisionAlign.enableDecisionAlignDetection;
-        if (typeof decisionAlign.enableIntervention === "boolean")
-          config.layers.decisionAlign.enableIntervention = decisionAlign.enableIntervention;
+      const decisionAlignment = (layers as Record<string, unknown>).decisionAlignment as Record<string, unknown> | undefined;
+      if (decisionAlignment) {
+        if (typeof decisionAlignment.enableDecisionAlignmentDetection === "boolean")
+          config.layers.decisionAlignment.enableDecisionAlignmentDetection = decisionAlignment.enableDecisionAlignmentDetection;
+        if (typeof decisionAlignment.enableIntervention === "boolean")
+          config.layers.decisionAlignment.enableIntervention = decisionAlignment.enableIntervention;
       }
 
       const execControl = (layers as Record<string, unknown>).execControl as Record<string, unknown> | undefined;
@@ -252,71 +252,71 @@ export const ConfigSchema = {
       label: "LLM API Key Env",
       help: "Environment variable name for API key. Default: AGENT_WARD_API_KEY.",
     },
-    "layers.trustedBase.enableTrustedBaseDetection": {
-      label: "Enable System Prompt Detection",
+    "layers.foundationScan.enableFoundationScanDetection": {
+      label: "Enable Foundation Scan",
       help: "When enabled, detects security bypass instructions in system prompt files.",
     },
-    "layers.trustedBase.enableIntervention": {
-      label: "Enable Trusted Base Intervention",
+    "layers.foundationScan.enableIntervention": {
+      label: "Enable Foundation Scan Intervention",
       help: "When true, blocks tool calls when threats are detected. When false, only logs and sends warnings without blocking.",
     },
-    "layers.trustedBase.blockToolCallOnTrustBaseWarning": {
+    "layers.foundationScan.blockToolCallOnFoundationScanWarning": {
       label: "Block Tool Calls on System Prompt Warning",
       help: "When true, tool calls are blocked when security bypass is detected in system prompt files.",
     },
-    "layers.trustedBase.detectMaliciousSkills.enable": {
+    "layers.foundationScan.detectMaliciousSkills.enable": {
       label: "Enable Malicious Skills Detection",
       help: "When enabled, scans skill files (SKILL.md) for malicious instructions.",
     },
-    "layers.trustedBase.detectMaliciousSkills.ruleBasedDetection": {
+    "layers.foundationScan.detectMaliciousSkills.ruleBasedDetection": {
       label: "Enable Rule-Based Detection (Skills)",
       help: "When enabled, uses regex patterns to detect malicious content in skill files.",
     },
-    "layers.trustedBase.detectMaliciousSkills.semanticDetection": {
+    "layers.foundationScan.detectMaliciousSkills.semanticDetection": {
       label: "Enable Semantic Detection (Skills)",
       help: "When enabled, uses LLM to semantically analyze skill files for malicious content.",
     },
-    "layers.trustedBase.detectMaliciousSkills.maxContentLength": {
+    "layers.foundationScan.detectMaliciousSkills.maxContentLength": {
       label: "Max Content Length for Semantic Detection",
       help: "Maximum number of characters to analyze in semantic detection. Default: 65536 (64KB). Higher values improve accuracy but increase LLM costs.",
     },
-    "layers.trustedBase.detectMaliciousSkills.maxConcurrency": {
+    "layers.foundationScan.detectMaliciousSkills.maxConcurrency": {
       label: "Max Concurrency for Skill Scanning",
       help: "Maximum number of skills to scan in parallel. Default: 10. Higher values improve speed but may cause API rate limits.",
     },
-    "layers.trustedBase.detectMisConfiguration.enable": {
+    "layers.foundationScan.detectMisConfiguration.enable": {
       label: "Enable Misconfiguration Detection",
       help: "When enabled, scans configuration files for security misconfigurations.",
     },
-    "layers.inputSensing.enableInputDetection": {
+    "layers.inputSanitization.enableInputDetection": {
       label: "Enable Input Detection",
       help: "When enabled, detects profanity and injection attempts in tool results.",
     },
-    "layers.inputSensing.enableIntervention": {
-      label: "Enable Input Sensing Intervention",
+    "layers.inputSanitization.enableIntervention": {
+      label: "Enable Input Sanitization Intervention",
       help: "When true, blocks tool calls and covers responses when threats are detected. When false, only logs and sends warnings without intervention.",
     },
-    "layers.inputSensing.blockHarmfulInput": {
+    "layers.inputSanitization.blockHarmfulInput": {
       label: "Block Harmful Input",
       help: "When true, harmful content is blocked entirely. When false, a warning is appended to the content.",
     },
-    "layers.inputSensing.coverContaminatedResponse": {
+    "layers.inputSanitization.coverContaminatedResponse": {
       label: "Cover Contaminated Response",
       help: "When true, replaces the assistant's response (after receiving harmful tool results) with warning messages. Original assistant responses are not persisted.",
     },
-    "layers.cognitiveState.enableMemWriteDetection": {
+    "layers.cognitionProtection.enableMemWriteDetection": {
       label: "Enable Memory Write Detection",
       help: "When enabled, detects abnormal patterns in memory file modifications.",
     },
-    "layers.cognitiveState.enableIntervention": {
-      label: "Enable Cognitive State Intervention",
+    "layers.cognitionProtection.enableIntervention": {
+      label: "Enable Cognition State Intervention",
       help: "When true, blocks tool calls when memory anomalies are detected. When false, only logs and sends warnings without blocking.",
     },
-    "layers.decisionAlign.enableDecisionAlignDetection": {
+    "layers.decisionAlignment.enableDecisionAlignmentDetection": {
       label: "Enable Decision Alignment Detection",
       help: "When enabled, monitors assistant responses for decision alignment issues.",
     },
-    "layers.decisionAlign.enableIntervention": {
+    "layers.decisionAlignment.enableIntervention": {
       label: "Enable Decision Align Intervention",
       help: "When true, temporarily blocks tool calls when decision misalignment is detected. When false, only logs and sends warnings without blocking.",
     },

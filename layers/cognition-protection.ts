@@ -36,7 +36,7 @@ function detectPoisoning(text: string): boolean {
   return detectPatterns.some((pattern) => pattern.test(text));
 }
 
-export function detectCognitiveStateAnomaly(
+export function detectCognitionProtectionAnomaly(
   toolName: string,
   params: Record<string, unknown>
 ): Warning | null {

@@ -5,8 +5,8 @@
   "description": "AgentWard security guard plugin for OpenClaw",
   "type": "module",
   "scripts": {
-    "test:trusted-base": "node test/trusted-base/run-detect-malicious-skills.mjs test/trusted-base",
-    "test:trusted-base:config": "node test/trusted-base/run-detect-misconfiguration.mjs test/trusted-base"
+    "test:foundation-scan": "node test/foundation-scan/run-detect-malicious-skills.mjs test/foundation-scan",
+    "test:foundation-scan:config": "node test/foundation-scan/run-detect-misconfiguration.mjs test/foundation-scan"
   },
   "dependencies": {
     "@mariozechner/pi-ai": "^0.57.1",

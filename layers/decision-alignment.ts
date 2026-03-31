@@ -100,12 +100,12 @@ function normalizeJudgeResponse(response: string): { blocked: boolean; text: str
   };
 }
 
-export function decisionAlignDetect(
+export function decisionAlignmentDetect(
   state: SessionState,
   assistantMessage: unknown,
 ): Warning | null {
   if (!state.llmContext) {
-    getLogger().error("LLM context not found for DecisionAlign Layer");
+    getLogger().error("LLM context not found for DecisionAlignment Layer");
     return null;
   }
 
@@ -134,22 +134,22 @@ export function decisionAlignDetect(
     );
 
     if (!response) {
-      getLogger().error("No response from LLM in DecisionAlign Layer");
+      getLogger().error("No response from LLM in DecisionAlignment Layer");
       return null;
     }
 
     const result = normalizeJudgeResponse(response);
-    state.decisionAlignInfo.push(result.text);
+    state.decisionAlignmentInfo.push(result.text);
 
     if (result.blocked) {
-      getLogger().warn("[Decision Align] Judge blocked assistant message: " + result.text);
+      getLogger().warn("[Decision Alignment] Judge blocked assistant message: " + result.text);
       return new Warning(DECISION_MISALIGN.type, DECISION_MISALIGN.description, result.text);
     }
 
-    getLogger().info("[Decision Align] Judge allowed assistant message: " + result.text);
+    getLogger().info("[Decision Alignment] Judge allowed assistant message: " + result.text);
     return null;
   } catch (err) {
-    getLogger().error(`Error in DecisionAlign Layer: ${JSON.stringify(err)}`);
+    getLogger().error(`Error in DecisionAlignment Layer: ${JSON.stringify(err)}`);
     return null;
   }
 }
