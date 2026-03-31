@@ -147,7 +147,11 @@ const plugin = {
       if (event.message.role == "toolResult" && config.layers.inputSanitization.enableInputDetection) {
         const warning = inputDetect(event.message.content);
         if (warning) {
-          send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."));
+          if (config.layers.inputSanitization.coverContaminatedResponse)
+            send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."));
+          else
+            send_message(state, formatMessageSendingWarning(warning));
+
           const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
           api.logger.error(`Detecting ${warning.type}. Blocking future tool calls...`);
           state.warning_queue.push(warning);
