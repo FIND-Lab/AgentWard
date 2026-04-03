@@ -88,8 +88,10 @@ const plugin = {
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           api.logger.error(`Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
-          if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning)
-            state.warning_queue.push(warning); state.warning_head++; // Inform the user immediately for the 'else' case.
+          if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning){
+            state.warning_queue.push(warning); state.warning_head++;
+            // In this case, the reason of tool call blocking is here. Show the assistant later by warning_queue.
+          }
 
           if (config.layers.foundationScan.enableIntervention) {
             if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning) {
