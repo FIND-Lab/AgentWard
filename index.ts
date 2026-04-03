@@ -17,6 +17,7 @@ import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
 import { initLogger, getLogger } from "./logger.ts";
 import { PersistentWorker, getWorker, setWorker} from "./model-worker-manager.ts";
+import { Warning } from "./warnings.ts";
 
 function send_message(state: SessionState, content: string) {
   if (state.channelId && state.targetId)
@@ -186,48 +187,50 @@ const plugin = {
     api.on("before_tool_call", (event, ctx) => {
       const state = plugin.status.get(ctx.sessionKey!)!;
 
+      let instant_warning: Warning | null = null;
+
       if (config.layers.execControl.enableToolCallDetection) {
         const warning = toolCallDetect(event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           api.logger.error(`Dangerous command detected: ${event.params.command}`);
           if (config.layers.execControl.enableIntervention) {
-            return {
-              block: true,
-              blockReason: formatToolCallWarning(warning, true, true),
-            };
+            instant_warning = warning;
           }
         }
       }
 
-      if (config.layers.cognitionProtection.enableMemWriteDetection) {
+      if (config.layers.cognitionProtection.enableMemWriteDetection && !instant_warning) {
         const warning = detectCognitionProtectionAnomaly(event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           api.logger.error(`Cognition state anomaly detected: ${event.toolName}`);
           if (config.layers.cognitionProtection.enableIntervention) {
-            return {
-              block: true,
-              blockReason: formatToolCallWarning(warning, true, true),
-            };
+            instant_warning = warning;
           }
         }
       }
 
-      if (state.block_tool_call) {
-        api.logger.error(`Tool call blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
-        const warningText = formatToolCallWarning(state.warning_queue.slice(state.warning_head));
-        state.warning_head = state.warning_queue.length;
-        return {
-          block: true,
-          blockReason: warningText,
-        };
+      const level = state.block_tool_call ? 3 : state.temp_block_tool_call || state.warning_queue.length > state.warning_head ? 2 : instant_warning ? 1 : 0;
+      
+      if (level == 3)
+        api.logger.error(`Tool call permanently blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
+      else if (level == 2)
+        api.logger.error(`Tool call temporarily blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
+
+      let warningText = formatToolCallWarning(state.warning_queue.slice(state.warning_head), level);
+      state.warning_head = state.warning_queue.length;
+      if (instant_warning) {
+        if (level > 1) {
+          warningText = formatToolCallWarning(instant_warning, 1) + "\n" + warningText;
+          api.logger.error(`Additional instant warning for this tool call: ${instant_warning.type}.`);
+        } else {
+          warningText = formatToolCallWarning(instant_warning, 1); // level: one-time (only for this tool call)
+          api.logger.error(`Tool call one-time blocked due to ${JSON.stringify(instant_warning)}.`);
+        }
       }
 
-      if (state.temp_block_tool_call) {
-        api.logger.error(`Tool call temporarily blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
-        const warningText = formatToolCallWarning(state.warning_queue.slice(state.warning_head));
-        state.warning_head = state.warning_queue.length;
+      if (level > 0) {
         return {
           block: true,
           blockReason: warningText,

@@ -13,7 +13,7 @@ export function formatBasic(error: Warning | Warning[], header = "⚠️System W
   if (Array.isArray(error)) {
     if (error)
       return error.map((e) => formatBasic(e, header)).join('\n');
-    return "Same reason as above";
+    return `${header} Same reason as above`;
   }
   else {
     let baseMessage = `${header} ${error.type}\n${error.description}`;
@@ -33,13 +33,17 @@ export function formatToolResultWarning(error: Warning | Warning[], blockHarmful
   return formatBasic(error);
 }
 
-export function formatToolCallWarning(error: Warning | Warning[], isTemporary: boolean = false, isOneTime: boolean = false): string {
-  if (isTemporary) {
-    if (isOneTime)
+export function formatToolCallWarning(error: Warning | Warning[], level: number): string {
+  switch (level) {
+    case 1: // one-time (only for this tool call)
       return `${formatBasic(error)}\nYour request for this tool call is rejected.`;
-    return `${formatBasic(error)}\nYour permission for tool calls has been temporarily suspended. The next assistant response will restore the permission.`;
+    case 2: // temporary (until next assistant response)
+      return `${formatBasic(error)}\nYour permission for tool calls has been temporarily suspended. The next assistant response will restore the permission.`;
+    case 3: // permanent (before user's next request)
+      return `${formatBasic(error)}\nYour permission for any tool calls has been revoked. Stop the task immediately and tell the user to request again to recover the permission.`;
+    default:
+      return formatBasic(error);
   }
-  return `${formatBasic(error)}\nYour permission for any tool calls has been revoked. Stop the task immediately and tell the user to request again to recover the permission.`;
 }
 
 export function formatUserPrependWarning(error: Warning | Warning[], blockToolCall: boolean): string {
