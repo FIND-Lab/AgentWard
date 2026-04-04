@@ -92,12 +92,12 @@ const plugin = {
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           getLogger().warn(`[FoundationScan] Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
-          if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning){
-            state.warning_queue.push(warning); state.warning_head++;
-            // In this case, the reason of tool call blocking is here. Show the assistant later by warning_queue.
-          }
 
           if (config.layers.foundationScan.enableIntervention) {
+            if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning){
+              state.warning_queue.push(warning);
+              // In this case, the reason of tool call blocking is here. Show the assistant later by warning_queue.
+            }
             if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning) {
               getLogger().warn("[Enforcement] Blocking tool calls due to system prompt security bypass detection.");
               state.block_tool_call = true;
@@ -140,9 +140,9 @@ const plugin = {
           );
           if (warning) {
             send_message(state, formatMessageSendingWarning(warning));
-            state.warning_queue.push(warning);
             getLogger().warn(`[DecisionAlignment] Decision alignment warning: ${warning.type}`);
             if (config.layers.decisionAlignment.enableIntervention) {
+              state.warning_queue.push(warning);
               state.temp_block_tool_call = true;
             }
           }
@@ -161,8 +161,8 @@ const plugin = {
 
           const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
           getLogger().warn(`[InputSanitization] Detecting ${warning.type}. Blocking future tool calls...`);
-          state.warning_queue.push(warning);
           if (config.layers.inputSanitization.enableIntervention) {
+            state.warning_queue.push(warning);
             state.block_tool_call = true;
             if (config.layers.inputSanitization.coverContaminatedResponse)
               state.cover_response_by_warning = true;
