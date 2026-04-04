@@ -56,7 +56,7 @@ export function inputDetect(content: unknown): Warning | null {
     instructionPatterns.forEach((pattern) => {
       if (pattern.test(content)) {
         instructionScore = true;
-        getLogger().info(`[input-sanitization] Detected Injection Instruction: "${content.match(pattern)?.[0]}"`);
+        getLogger().warn(`[InputSanitization] Detected Injection Instruction: "${content.match(pattern)?.[0]}"`);
         return
       }
     });
@@ -65,7 +65,7 @@ export function inputDetect(content: unknown): Warning | null {
     jeilBreakPatterns.forEach((pattern) => {
       if (pattern.test(content)) {
         jailbreakScore = true;
-        getLogger().info(`[input-sanitization] Detected Jailbreak Content: "${content.match(pattern)?.[0]}"`);
+        getLogger().warn(`[InputSanitization] Detected Jailbreak Content: "${content.match(pattern)?.[0]}"`);
         return
       }
     });
@@ -74,7 +74,7 @@ export function inputDetect(content: unknown): Warning | null {
     templatePattern.forEach((pattern) => {
       if (pattern.test(content)) {
         templateScore = true;
-        getLogger().info(`[input-sanitization] Detected Template Content: "${content.match(pattern)?.[0]}"`);
+        getLogger().warn(`[InputSanitization] Detected Template Content: "${content.match(pattern)?.[0]}"`);
         return
       }
     });

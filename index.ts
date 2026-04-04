@@ -28,7 +28,7 @@ function send_message(state: SessionState, content: string) {
       '--message', content
     ], { stdio: 'inherit' });
   else
-    getLogger().warn("No channel to send message.")
+    getLogger().error("[Enforcement] No channel to send message.");
 }
 
 const plugin = {
@@ -91,7 +91,7 @@ const plugin = {
         );
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
-          getLogger().error(`Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
+          getLogger().warn(`[FoundationScan] Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
           if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning){
             state.warning_queue.push(warning); state.warning_head++;
             // In this case, the reason of tool call blocking is here. Show the assistant later by warning_queue.
@@ -99,7 +99,7 @@ const plugin = {
 
           if (config.layers.foundationScan.enableIntervention) {
             if (config.layers.foundationScan.blockToolCallOnFoundationScanWarning) {
-              getLogger().error(`Blocking tool calls due to system prompt security bypass detection.`);
+              getLogger().warn("[Enforcement] Blocking tool calls due to system prompt security bypass detection.");
               state.block_tool_call = true;
             }
             return { prependContext: formatUserPrependWarning(warning, config.layers.foundationScan.blockToolCallOnFoundationScanWarning) }; 
@@ -118,7 +118,7 @@ const plugin = {
       if (state.block_persistence)
         return {block: true};
       if (event.message.role == "assistant" && state.cover_response_by_warning){
-        getLogger().error("Informing user about input detection warning...");
+        getLogger().warn("[Enforcement] Informing user about input detection warning...");
         state.block_persistence = true;
         const content = state.warning_queue.slice(state.warning_head).map((warning) => ({type: "text", text: formatCoverAssistantWarning(warning)}));
         state.warning_head = state.warning_queue.length;
@@ -141,7 +141,7 @@ const plugin = {
           if (warning) {
             send_message(state, formatMessageSendingWarning(warning));
             state.warning_queue.push(warning);
-            getLogger().warn(`Decision alignment warning: ${warning.type}`);
+            getLogger().warn(`[DecisionAlignment] Decision alignment warning: ${warning.type}`);
             if (config.layers.decisionAlignment.enableIntervention) {
               state.temp_block_tool_call = true;
             }
@@ -160,7 +160,7 @@ const plugin = {
             send_message(state, formatMessageSendingWarning(warning));
 
           const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
-          getLogger().error(`Detecting ${warning.type}. Blocking future tool calls...`);
+          getLogger().warn(`[InputSanitization] Detecting ${warning.type}. Blocking future tool calls...`);
           state.warning_queue.push(warning);
           if (config.layers.inputSanitization.enableIntervention) {
             state.block_tool_call = true;
@@ -196,7 +196,7 @@ const plugin = {
         const warning = toolCallDetect(event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
-          getLogger().error(`Dangerous command detected: ${event.params.command}`);
+          getLogger().warn(`[ExecControl] Dangerous command detected: ${event.params.command}`);
           if (config.layers.execControl.enableIntervention) {
             instant_warning = warning;
           }
@@ -207,7 +207,7 @@ const plugin = {
         const warning = detectCognitionProtectionAnomaly(event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
-          getLogger().error(`Cognition state anomaly detected: ${event.toolName}`);
+          getLogger().warn(`[CognitionProtection] Cognition state anomaly detected: ${event.toolName}`);
           if (config.layers.cognitionProtection.enableIntervention) {
             instant_warning = warning;
           }
@@ -217,19 +217,19 @@ const plugin = {
       const level = state.block_tool_call ? 3 : state.temp_block_tool_call || state.warning_queue.length > state.warning_head ? 2 : instant_warning ? 1 : 0;
       
       if (level == 3)
-        getLogger().error(`Tool call permanently blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
+        getLogger().warn(`[Enforcement] Tool call permanently blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
       else if (level == 2)
-        getLogger().error(`Tool call temporarily blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
+        getLogger().warn(`[Enforcement] Tool call temporarily blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
 
       let warningText = formatToolCallWarning(state.warning_queue.slice(state.warning_head), level);
       state.warning_head = state.warning_queue.length;
       if (instant_warning) {
         if (level > 1) {
           warningText = formatToolCallWarning(instant_warning, 1) + "\n" + warningText;
-          getLogger().error(`Additional instant warning for this tool call: ${instant_warning.type}.`);
+          getLogger().warn(`[Enforcement] Additional instant warning for this tool call: ${instant_warning.type}.`);
         } else {
           warningText = formatToolCallWarning(instant_warning, 1); // level: one-time (only for this tool call)
-          getLogger().error(`Tool call one-time blocked due to ${JSON.stringify(instant_warning)}.`);
+          getLogger().warn(`[Enforcement] Tool call one-time blocked due to ${JSON.stringify(instant_warning)}.`);
         }
       }
 

@@ -88,32 +88,32 @@ export class PersistentWorker {
     });
     
     this.worker.on('online', () => {
-      getLogger().info('[Worker-Manager] Worker Online');
+      getLogger().info('[WorkerManager] Worker Online');
     });
     
     this.worker.on('message', (msg) => {
       if (msg.type === 'log') {
         if (msg.level === 'warn') {
-          getLogger().warn(`[Worker-Manager] ${msg.message}`);
+          getLogger().warn(`[WorkerManager] ${msg.message}`);
         } else if (msg.level === 'error') {
-          getLogger().error(`[Worker-Manager] ${msg.message}`);
+          getLogger().error(`[WorkerManager] ${msg.message}`);
         } else {
-          getLogger().info(`[Worker-Manager] ${msg.message}`);
+          getLogger().info(`[WorkerManager] ${msg.message}`);
         }
       }
     });
     
     this.worker.on('error', (err) => {
-      getLogger().error(`[Worker-Manager] Error: ${err}`);
+      getLogger().error(`[WorkerManager] Error: ${err}`);
       this.running = false;
     });
     
     this.worker.on('exit', (code) => {
-      getLogger().warn(`[Worker-Manager] Worker Exit: ${code}`);
+      getLogger().warn(`[WorkerManager] Worker Exit: ${code}`);
       this.running = false;
     });
     
-    getLogger().info('[Worker-Manager] Worker Started');
+    getLogger().info('[WorkerManager] Worker Started');
   }
 
   call(request: WorkerRequest): WorkerResponse | null {
@@ -129,7 +129,7 @@ export class PersistentWorker {
       
       const requestFileEncoded = this.encoder.encode(requestFile);
       if (requestFileEncoded.length > FILENAME_MAX_LENGTH) {
-        getLogger().error(`[Worker-Manager] Request filename too long: ${requestFileEncoded.length} > ${FILENAME_MAX_LENGTH}`);
+        getLogger().error(`[WorkerManager] Request filename too long: ${requestFileEncoded.length} > ${FILENAME_MAX_LENGTH}`);
         return null;
       }
       this.view[1] = requestFileEncoded.length;
@@ -137,7 +137,7 @@ export class PersistentWorker {
       
       const responseFileEncoded = this.encoder.encode(responseFile);
       if (responseFileEncoded.length > FILENAME_MAX_LENGTH) {
-        getLogger().error(`[Worker-Manager] Response filename too long: ${responseFileEncoded.length} > ${FILENAME_MAX_LENGTH}`);
+        getLogger().error(`[WorkerManager] Response filename too long: ${responseFileEncoded.length} > ${FILENAME_MAX_LENGTH}`);
         return null;
       }
       this.view[RESPONSE_FILENAME_LENGTH_INDEX] = responseFileEncoded.length;
@@ -153,10 +153,10 @@ export class PersistentWorker {
       Atomics.and(this.view, 0, ~0b001);
       
       if (status === 'timed-out') {
-        getLogger().error('[Worker-Manager] Timeout');
+        getLogger().error('[WorkerManager] Timeout');
         const currentStatus = Atomics.load(this.view, 0);
-        getLogger().error(`[Worker-Manager] Current status: ${currentStatus.toString(2)}`);
-        getLogger().error(`[Worker-Manager] Worker is running: ${this.running}`);
+        getLogger().error(`[WorkerManager] Current status: ${currentStatus.toString(2)}`);
+        getLogger().error(`[WorkerManager] Worker is running: ${this.running}`);
         return null;
       }
       
@@ -164,7 +164,7 @@ export class PersistentWorker {
       
       return response;
     } catch (error) {
-      getLogger().error(`[Worker-Manager] Call failed: ${error}`);
+      getLogger().error(`[WorkerManager] Call failed: ${error}`);
       return null;
     } finally {
       rmSync(requestFilePath, { force: true });
@@ -175,19 +175,19 @@ export class PersistentWorker {
   shutdown() {
     if (!this.running) return;
     
-    getLogger().info('[Worker-Manager] Shutdown');
+    getLogger().info('[WorkerManager] Shutdown');
     
     Atomics.or(this.view, 0, 0b100);
     Atomics.notify(this.view, 0);
     
     const timeout = setTimeout(() => {
-      getLogger().error('[Worker-Manager] Shutdown timeout, force terminate');
+      getLogger().error('[WorkerManager] Shutdown timeout, force terminate');
       this.worker.terminate();
     }, 5000);
     
     this.worker.on('exit', () => {
       clearTimeout(timeout);
-      getLogger().info('[Worker-Manager] Shutdown completed');
+      getLogger().info('[WorkerManager] Shutdown completed');
     });
   }
 
@@ -216,7 +216,7 @@ export function callLLMSync(
 ): syncLLMResponse | null {
   const worker = getWorker();
   if (!worker || !worker.isRunning()) {
-    getLogger().warn('[AgentWard] Worker is not running, skip LLM call');
+    getLogger().error('[WorkerManager] Worker is not running, skip LLM call');
     return null;
   }
   
@@ -231,7 +231,7 @@ export function callLLMSync(
   if (response && response.success) {
     return response.data as syncLLMResponse;
   } else {
-    getLogger().warn(`[AgentWard] LLM call failed: ${response?.error || 'unknown error'}`);
+    getLogger().error(`[WorkerManager] LLM call failed: ${response?.error || 'unknown error'}`);
     return null;
   }
 }
@@ -267,7 +267,7 @@ export function callLLMSimple(
   });
   
   if (!response || !response.content) {
-    getLogger().warn('[AgentWard] LLM call response is empty');
+    getLogger().error('[WorkerManager] LLM call response is empty');
     return null;
   }
   

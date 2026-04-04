@@ -313,14 +313,14 @@ async function callSemanticDetectionApi(
     const content = textContent ? textContent.text : null;
 
     if (!content) {
-      logger?.warn(`[foundation-scan] Semantic detection call warning: empty response content`);
+      logger?.error(`[FoundationScan] Semantic detection call warning: empty response content`);
       return null;
     }
 
     return extractJsonObject(content);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    logger?.error(`[foundation-scan] Semantic detection call failed: ${errorMessage}`);
+    logger?.error(`[FoundationScan] Semantic detection call failed: ${errorMessage}`);
     return null;
   }
 }
@@ -350,7 +350,7 @@ async function detectSkillMetadataRisk(
   llmContext: LlmCallContext,
   logger?: LoggerLike,
 ): Promise<JudgeMetadataResult | null> {
-  logger?.info(`[foundation-scan] Semantic metadata detection: calling for skill=${skill.name ?? "(unknown)"}`);
+  logger?.info(`[FoundationScan] Semantic metadata detection: calling for skill=${skill.name ?? "(unknown)"}`);
   
   const metadataContent = JSON.stringify({
     name: skill.name,
@@ -364,11 +364,11 @@ async function detectSkillMetadataRisk(
   
   const cachedResult = METADATA_RESULT_CACHE.get(metadataHash);
   if (cachedResult) {
-    logger?.info(`[foundation-scan] metadata cache hit: skill=${skill.name ?? "(unknown)"}, hash=${metadataHash.substring(0, 16)}...`);
+    logger?.info(`[FoundationScan] metadata cache hit: skill=${skill.name ?? "(unknown)"}, hash=${metadataHash.substring(0, 16)}...`);
     return cachedResult;
   }
   
-  logger?.info(`[foundation-scan] metadata cache miss, proceeding with detection: skill=${skill.name ?? "(unknown)"}`);
+  logger?.info(`[FoundationScan] metadata cache miss, proceeding with detection: skill=${skill.name ?? "(unknown)"}`);
   
   const systemPrompt = [
     "You are a security judge for agent skills.",
@@ -443,7 +443,7 @@ async function detectSkillMetadataRisk(
 
   const parsed = await callSemanticDetectionApi(systemPrompt, userPrompt, llmContext, logger);
   if (!parsed) {
-    logger?.info(`[foundation-scan] Semantic metadata detection: returned null for skill=${skill.name ?? "(unknown)"}`);
+    logger?.warn(`[FoundationScan] Semantic metadata detection: returned null for skill=${skill.name ?? "(unknown)"}`);
     return null;
   }
 
@@ -452,10 +452,10 @@ async function detectSkillMetadataRisk(
     reason: typeof parsed.reason === "string" ? parsed.reason : "",
     capabilitySummary: typeof parsed.capabilitySummary === "string" ? parsed.capabilitySummary : "",
   };
-  logger?.info(`[foundation-scan] Semantic metadata detection: skill=${skill.name ?? "(unknown)"}, metadataRisk=${result.metadataRisk}, summaryLength=${result.capabilitySummary.length}`);
+  logger?.info(`[FoundationScan] Semantic metadata detection: skill=${skill.name ?? "(unknown)"}, metadataRisk=${result.metadataRisk}, summaryLength=${result.capabilitySummary.length}`);
   
   METADATA_RESULT_CACHE.set(metadataHash, result);
-  logger?.info(`[foundation-scan] metadata result cached: hash=${metadataHash.substring(0, 16)}..., cacheSize=${METADATA_RESULT_CACHE.size}`);
+  logger?.info(`[FoundationScan] metadata result cached: hash=${metadataHash.substring(0, 16)}..., cacheSize=${METADATA_RESULT_CACHE.size}`);
   
   return result;
 }
@@ -469,7 +469,7 @@ async function detectSkillContentRisk(
   logger?: LoggerLike,
   maxContentLength: number = DEFAULT_MAX_SEMANTIC_INPUT_CHARS,
 ): Promise<JudgeContentResult | null> {
-  logger?.info(`[foundation-scan] Semantic content detection: calling for file=${filePath}, summaryLength=${capabilitySummary.length}, contentLength=${fileContent.length}`);
+  logger?.info(`[FoundationScan] Semantic content detection: calling for file=${filePath}, summaryLength=${capabilitySummary.length}, contentLength=${fileContent.length}`);
   const systemPrompt = [
     "You are a security judge for agent skill files.",
     "Return JSON only.",
@@ -538,7 +538,7 @@ async function detectSkillContentRisk(
 
   const parsed = await callSemanticDetectionApi(systemPrompt, userPrompt, llmContext, logger);
   if (!parsed) {
-    logger?.info(`[foundation-scan] Semantic content detection: returned null for file=${filePath}`);
+    logger?.warn(`[FoundationScan] Semantic content detection: returned null for file=${filePath}`);
     return null;
   }
 
@@ -547,7 +547,7 @@ async function detectSkillContentRisk(
     malicious: Boolean(parsed.malicious),
     reason: typeof parsed.reason === "string" ? parsed.reason : "",
   };
-  logger?.info(`[foundation-scan] Semantic content detection: file=${filePath}, aligned=${result.aligned}, malicious=${result.malicious}, reasonLength=${result.reason.length}`);
+  logger?.info(`[FoundationScan] Semantic content detection: file=${filePath}, aligned=${result.aligned}, malicious=${result.malicious}, reasonLength=${result.reason.length}`);
   return result;
 }
 
@@ -562,7 +562,7 @@ async function scanSkillMetadata(
   }
 
   if (metadataDetection.metadataRisk) {
-    logger?.info(`[foundation-scan] metadata blocked: skill=${skill.name ?? "(unknown)"}, reason=${metadataDetection.reason || "metadata judged as risky"}`);
+    logger?.warn(`[FoundationScan] metadata blocked: skill=${skill.name ?? "(unknown)"}, reason=${metadataDetection.reason || "metadata judged as risky"}`);
     return {
       metadataSummary: "",
       warning: createMaliciousWarning(
@@ -576,7 +576,7 @@ async function scanSkillMetadata(
   }
 
   const metadataSummary = metadataDetection.capabilitySummary || "";
-  logger?.info(`[foundation-scan] metadata summary generated: skill=${skill.name ?? "(unknown)"}, summaryLength=${metadataSummary.length}`);
+  logger?.info(`[FoundationScan] metadata summary generated: skill=${skill.name ?? "(unknown)"}, summaryLength=${metadataSummary.length}`);
   return { metadataSummary, warning: null };
 }
 
@@ -593,23 +593,23 @@ async function scanSkillFile(
     const contentHash = calculateContentHash(content);
 
     if (TRUSTED_FILE_HASHES.has(contentHash)) {
-      logger?.info(`[foundation-scan] trusted hash hit: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
+      logger?.info(`[FoundationScan] trusted hash hit: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
       return null;
     }
 
     if (options.detectMaliciousSkills.ruleBasedDetection) {
       const ruleDetection = detectByRules(content);
       if (ruleDetection?.blocked) {
-        logger?.info(`[foundation-scan] RuleBased detection blocked: skill=${skill.name ?? "(unknown)"}, file=${filePath}, reason=${ruleDetection.reason}`);
+        logger?.warn(`[FoundationScan] RuleBased detection blocked: skill=${skill.name ?? "(unknown)"}, file=${filePath}, reason=${ruleDetection.reason}`);
         return createMaliciousWarning(`Skill: ${skill.name}\nFile: ${filePath}\nReason: ${ruleDetection.reason}`);
       }
     }
 
     if (options.detectMaliciousSkills.semanticDetection) {
-      logger?.info(`[foundation-scan] SemanticBased detection: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
+      logger?.info(`[FoundationScan] SemanticBased detection: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
       let semanticDetection: Detection | null = null;
       if (metadataSummary) {
-        logger?.info(`[foundation-scan] SemanticBased detection: using API with metadata summary (length=${metadataSummary.length})`);
+        logger?.info(`[FoundationScan] SemanticBased detection: using API with metadata summary (length=${metadataSummary.length})`);
         const detectionResult = await detectSkillContentRisk(
           skill,
           metadataSummary,
@@ -620,9 +620,9 @@ async function scanSkillFile(
           options.detectMaliciousSkills.maxContentLength,
         );
         if (detectionResult) {
-          logger?.info(`[foundation-scan] SemanticBased detection result - aligned=${detectionResult.aligned}, malicious=${detectionResult.malicious}, reason=${detectionResult.reason.substring(0, 200)}...`);
+          logger?.info(`[FoundationScan] SemanticBased detection result - aligned=${detectionResult.aligned}, malicious=${detectionResult.malicious}, reason=${detectionResult.reason.substring(0, 200)}...`);
         } else {
-          logger?.warn(`[foundation-scan] SemanticBased detection: API returned null, assuming benign`);
+          logger?.warn(`[FoundationScan] SemanticBased detection: API returned null, assuming benign`);
         }
         if (detectionResult?.malicious || detectionResult?.aligned === false) {
           const issueType = detectionResult?.malicious ? "MALICIOUS CONTENT" : "MISALIGNED CONTENT";
@@ -639,26 +639,26 @@ async function scanSkillFile(
         }
       } else {
         if (!metadataSummary) {
-          logger?.warn(`[foundation-scan] SemanticBased detection: no metadata summary, assuming benign`);
+          logger?.warn(`[FoundationScan] SemanticBased detection: no metadata summary, assuming benign`);
         }
         semanticDetection = null;
       }
 
       if (semanticDetection?.blocked) {
-        logger?.info(`[foundation-scan] SemanticBased detection blocked: skill=${skill.name ?? "(unknown)"}, file=${filePath}, reason=${semanticDetection.reason.substring(0, 200)}...`);
+        logger?.warn(`[FoundationScan] SemanticBased detection blocked: skill=${skill.name ?? "(unknown)"}, file=${filePath}, reason=${semanticDetection.reason.substring(0, 200)}...`);
         return createMaliciousWarning(semanticDetection.reason);
       } else {
-        logger?.info(`[foundation-scan] SemanticBased detection passed: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
+        logger?.info(`[FoundationScan] SemanticBased detection passed: skill=${skill.name ?? "(unknown)"}, file=${filePath}`);
       }
     }
 
     TRUSTED_FILE_HASHES.add(contentHash);
-    logger?.info(`[foundation-scan] trusted hash added: skill=${skill.name ?? "(unknown)"}, file=${filePath}, cacheSize=${TRUSTED_FILE_HASHES.size}`);
+    logger?.info(`[FoundationScan] trusted hash added: skill=${skill.name ?? "(unknown)"}, file=${filePath}, cacheSize=${TRUSTED_FILE_HASHES.size}`);
 
     return null;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    logger?.error(`Error in scanSkillFile: ${errorMessage}`);
+    logger?.error(`[FoundationScan] Error in scanSkillFile: ${errorMessage}`);
     return null;
   }
 }
@@ -786,13 +786,13 @@ async function scanSkillDirectory(
   options: Required<FoundationScanConfig>,
 ): Promise<Warning | null> {
   if (!skill.filePath) {
-    logger?.info(`[foundation-scan] skip skill without filePath: ${skill.name ?? "(unknown)"}`);
+    logger?.warn(`[FoundationScan] skip skill without filePath: ${skill.name ?? "(unknown)"}`);
     return null;
   }
 
   const baseDir = skill.baseDir || path.dirname(skill.filePath);
   const textFiles = listTextFilesRecursively(baseDir);
-  logger?.info(`[foundation-scan] scanning skill=${skill.name ?? "(unknown)"}, files=${textFiles.length}`);
+  logger?.info(`[FoundationScan] scanning skill=${skill.name ?? "(unknown)"}, files=${textFiles.length}`);
 
   const { metadataSummary, warning: metadataWarning } = (options.detectMaliciousSkills.semanticDetection && llmContext)
     ? await scanSkillMetadata(skill, llmContext, logger)
@@ -822,21 +822,21 @@ export async function detectMaliciousSkills(
   config: Required<FoundationScanConfig>,
 ): Promise<Warning | null> { 
   if (!config.detectMaliciousSkills.ruleBasedDetection && !config.detectMaliciousSkills.semanticDetection) {
-    logger?.info("[foundation-scan] both rule-based and semantic detection are disabled, skip malicious skills scan.");
+    logger?.info("[FoundationScan] both rule-based and semantic detection are disabled, skip malicious skills scan.");
     return null;
   }
   
   const llmContext = state?.llmContext?.apiKey ? state.llmContext : null;
   
   if (config.detectMaliciousSkills.semanticDetection && !llmContext) {
-    logger?.warn("[foundation-scan] semantic detection enabled but no LLM context available, falling back to rule-based detection only.");
+    logger?.warn("[FoundationScan] semantic detection enabled but no LLM context available, falling back to rule-based detection only.");
   }
   
   const skillsDir = path.join(workspaceDir, "skills");
-  logger?.info(`[foundation-scan] start scan, workspace=${workspaceDir}, skillsDir=${skillsDir}, enableRuleBasedDetection=${config.detectMaliciousSkills.ruleBasedDetection}, enableSemanticDetection=${config.detectMaliciousSkills.semanticDetection && !!llmContext}`);
+  logger?.info(`[FoundationScan] start scan, workspace=${workspaceDir}, skillsDir=${skillsDir}, enableRuleBasedDetection=${config.detectMaliciousSkills.ruleBasedDetection}, enableSemanticDetection=${config.detectMaliciousSkills.semanticDetection && !!llmContext}`);
 
   if (!fs.existsSync(skillsDir)) {
-    logger?.info("[foundation-scan] skills dir does not exist, skip.");
+    logger?.info("[FoundationScan] skills dir does not exist, skip.");
     return null;
   }
 
@@ -844,11 +844,11 @@ export async function detectMaliciousSkills(
     dir: skillsDir,
     source: "agent-ward-foundation-scan",
   });
-  logger?.info(`[foundation-scan] loaded skills: ${result.skills.length}`);
+  logger?.info(`[FoundationScan] loaded skills: ${result.skills.length}`);
 
   const maxConcurrency = config.detectMaliciousSkills.maxConcurrency ?? DEFAULT_MAX_CONCURRENCY;
   const limit = pLimit(maxConcurrency);
-  logger?.info(`[foundation-scan] scanning with concurrency: ${maxConcurrency}`);
+  logger?.info(`[FoundationScan] scanning with concurrency: ${maxConcurrency}`);
   
   const scanTasks = result.skills.map((skill) => 
     limit(async () => {
@@ -861,12 +861,12 @@ export async function detectMaliciousSkills(
   
   for (const result of results) {
     if (result.status === 'fulfilled' && result.value.warning) {
-      logger?.info(`[foundation-scan] scan completed with warning from skill: ${result.value.skill}`);
+      logger?.info(`[FoundationScan] scan completed with warning from skill: ${result.value.skill}`);
       return result.value.warning;
     }
   }
   
-  logger?.info("[foundation-scan] scan completed, no warning.");
+  logger?.info("[FoundationScan] scan completed, no warning.");
   return null;
 }
 
@@ -875,25 +875,25 @@ export function detectMisConfiguration(
   logger: LoggerLike,
   config: OpenClawConfig,
 ): Warning | null {
-  logger?.info(`[foundation-scan] start misconfiguration scan, workspace=${workspaceDir}`);
+  logger?.info(`[FoundationScan] start misconfiguration scan, workspace=${workspaceDir}`);
   if (!config) {
-    logger?.error("[foundation-scan] no config provided, skip misconfiguration scan.");
+    logger?.error("[FoundationScan] no config provided, skip misconfiguration scan.");
     return null;
   }
 
   const gatewayExposureIssue = detectGatewayExposureMisconfiguration(config);
   if (gatewayExposureIssue) {
-    logger?.info(`[foundation-scan] misconfiguration blocked: ${gatewayExposureIssue.replace(/\n/g, " | ")}`);
+    logger?.info(`[FoundationScan] misconfiguration blocked: ${gatewayExposureIssue.replace(/\n/g, " | ")}`);
     return createMisConfigurationWarning(gatewayExposureIssue);
   }
 
   const accessControlIssue = detectAccessControlMisconfiguration(config);
   if (accessControlIssue) {
-    logger?.info(`[foundation-scan] misconfiguration blocked: ${accessControlIssue.replace(/\n/g, " | ")}`);
+    logger?.info(`[FoundationScan] misconfiguration blocked: ${accessControlIssue.replace(/\n/g, " | ")}`);
     return createMisConfigurationWarning(accessControlIssue);
   }
 
-  logger?.info("[foundation-scan] misconfiguration scan completed, no warning.");
+  logger?.info("[FoundationScan] misconfiguration scan completed, no warning.");
   return null;
 }
 
@@ -906,7 +906,7 @@ export async function detectFoundationScan(
 ): Promise<Warning | null> {
   const mergedOptions = merge({}, DEFAULT_FOUNDATION_SCAN_CONFIG, options) as Required<FoundationScanConfig>;
 
-  logger?.info(`[foundation-scan] start foundation scan, workspace=${workspaceDir}, options=${JSON.stringify(mergedOptions)}`);
+  logger?.info(`[FoundationScan] start foundation scan, workspace=${workspaceDir}, options=${JSON.stringify(mergedOptions)}`);
 
   if (mergedOptions.detectMisConfiguration.enable) {
     const misConfigurationWarning = detectMisConfiguration(workspaceDir, logger, config);
@@ -914,7 +914,7 @@ export async function detectFoundationScan(
       return misConfigurationWarning;
     }
   } else {
-    logger?.info("[foundation-scan] detectMisConfiguration is disabled, skip.");
+    logger?.info("[FoundationScan] detectMisConfiguration is disabled, skip.");
   }
 
   if (mergedOptions.detectMaliciousSkills.enable) {
@@ -923,9 +923,9 @@ export async function detectFoundationScan(
       return maliciousSkillWarning;
     }
   } else {
-    logger?.info("[foundation-scan] detectMaliciousSkills is disabled, skip.");
+    logger?.info("[FoundationScan] detectMaliciousSkills is disabled, skip.");
   }
 
-  logger?.info("[foundation-scan] foundation scan completed, no warning.");
+  logger?.info("[FoundationScan] foundation scan completed, no warning.");
   return null;
 }

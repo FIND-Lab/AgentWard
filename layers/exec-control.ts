@@ -261,7 +261,7 @@ function matchesAnyPattern(text: string, patterns: RegExp[]): boolean {
   return patterns.some(pattern => {
     const match = pattern.test(text);
     if (match) {
-      getLogger().info(`[exec-control] Pattern matched: ${pattern.source}`);
+      getLogger().warn(`[ExecControl] Pattern matched: ${pattern.source}`);
     }
     return match;
   });
