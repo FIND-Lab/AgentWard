@@ -11,28 +11,13 @@
 
 ## Quick Start
 
-1. ⚡ **Installation**
+1. ⚡ **Installation or Update**
 
    ```bash
-   # One-click deployment
-   openclaw plugins install /path/to/agent-ward
+   # Run the setup script
+   bash /path/to/agent-ward/setup.sh
    ```
-2. 📥 **Enable Plugin**
-   Edit `~/.openclaw/openclaw.json`:
-
-   ```json
-   {
-       "plugins": {
-           "allow": ["agent-ward"],
-           "entries": {
-           "agent-ward": {
-               "enabled": true
-               }
-           }
-       }
-   }
-   ```
-3. ✅ **Verify Installation**
+2. ✅ **Verify Installation**
 
    ```bash
    openclaw plugins list
