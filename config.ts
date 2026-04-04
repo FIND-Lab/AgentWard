@@ -43,6 +43,7 @@ export class PluginConfig {
   };
   logging: {
     level: "off" | "basic" | "event" | "ctx" | "full";
+    enableFileLog: boolean;
   };
   worker: {
     timeout: number;
@@ -96,6 +97,7 @@ export class PluginConfig {
     };
     this.logging = {
       level: "basic",
+      enableFileLog: true,
     };
     this.worker = {
       timeout: 60000,
@@ -204,6 +206,10 @@ export class PluginConfig {
       const level = (logging as Record<string, unknown>).level as string | undefined;
       if (level && ["off", "basic", "event", "ctx", "full"].includes(level)) {
         config.logging.level = level as "off" | "basic" | "event" | "ctx" | "full";
+      }
+      const enableFileLog = (logging as Record<string, unknown>).enableFileLog;
+      if (typeof enableFileLog === "boolean") {
+        config.logging.enableFileLog = enableFileLog;
       }
     }
 
@@ -331,6 +337,10 @@ export const ConfigSchema = {
     "logging.level": {
       label: "Logging Level",
       help: "Control log verbosity: off (no logs), basic (Log ... only), event (show event data), ctx (show context), full (show both event and ctx)",
+    },
+    "logging.enableFileLog": {
+      label: "Enable File Logging",
+      help: "When enabled, all logs are also written to a dedicated JSONL file at $OPENCLAW_STATE_DIR/agentward/logs/agentward.log (defaults to ~/.openclaw/agentward/logs/).",
     },
     "worker.timeout": {
       label: "Worker Timeout (ms)",

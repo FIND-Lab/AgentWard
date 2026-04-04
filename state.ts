@@ -2,6 +2,7 @@ import type { Warning } from "./warnings.ts";
 import type { Model, Api, ProviderStreamOptions } from "@mariozechner/pi-ai";
 import type { OpenClawConfig, OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { PROVIDER_BASE_URLS, PROVIDER_API_TYPES } from "./map.ts";
+import { getLogger } from "./logger.ts";
 
 export type LlmCallContext = {
   model: Model<Api>;
@@ -95,7 +96,7 @@ export class SessionState {
       modelRef: this.defaultModelRef,
     };
 
-    api.logger.info(`[SessionState] LLM context initialized from plugin config using env ${apiKeyEnv}`);
+    getLogger().info(`[SessionState] LLM context initialized from plugin config using env ${apiKeyEnv}`);
     return true;
   }
   
@@ -106,7 +107,7 @@ export class SessionState {
 
     const config: OpenClawConfig = api.config;
     if (!config ) {
-      api.logger.error(`[SessionState] No config available, cannot initialize LLM context`);
+      getLogger().error(`[SessionState] No config available, cannot initialize LLM context`);
       return;
     }
     
@@ -116,7 +117,7 @@ export class SessionState {
       : modelConfig?.primary;
     
     if (!this.defaultModelRef) {
-        api.logger.error(`[SessionState] No model reference found in config or session, cannot initialize LLM context`);
+        getLogger().error(`[SessionState] No model reference found in config or session, cannot initialize LLM context`);
       return;
     }
     
@@ -131,7 +132,7 @@ export class SessionState {
       });
       
       if (!authInfo.apiKey) {
-        api.logger.warn(`[SessionState] No API key found for provider ${provider}`);
+        getLogger().warn(`[SessionState] No API key found for provider ${provider}`);
         return;
       }
       let model: Model<Api> = null as any;
@@ -170,7 +171,7 @@ export class SessionState {
         modelRef: this.defaultModelRef,
       };
     } catch (error) {
-      api.logger.error(`[SessionState] Failed to initialize LLM context:`, error);
+      getLogger().error(`[SessionState] Failed to initialize LLM context: ${JSON.stringify(error)}`);
     }
   }
 }

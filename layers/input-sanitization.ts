@@ -1,4 +1,5 @@
 import { Warning } from "../warnings.ts";
+import { getLogger } from "../logger.ts";
 
 export const INJECTION_DETECTED = new Warning(
   "Injection Detected",
@@ -55,7 +56,7 @@ export function inputDetect(content: unknown): Warning | null {
     instructionPatterns.forEach((pattern) => {
       if (pattern.test(content)) {
         instructionScore = true;
-        console.log('debug', `[Worker] Detected Injection Instruction: "${content.match(pattern)?.[0]}"`);
+        getLogger().info(`[input-sanitization] Detected Injection Instruction: "${content.match(pattern)?.[0]}"`);
         return
       }
     });
@@ -64,7 +65,7 @@ export function inputDetect(content: unknown): Warning | null {
     jeilBreakPatterns.forEach((pattern) => {
       if (pattern.test(content)) {
         jailbreakScore = true;
-        console.log('debug', `[Worker] Detected Jailbreak Content: "${content.match(pattern)?.[0]}"`);
+        getLogger().info(`[input-sanitization] Detected Jailbreak Content: "${content.match(pattern)?.[0]}"`);
         return
       }
     });
@@ -73,7 +74,7 @@ export function inputDetect(content: unknown): Warning | null {
     templatePattern.forEach((pattern) => {
       if (pattern.test(content)) {
         templateScore = true;
-        console.log('debug', `[Worker] Detected Template Content: "${content.match(pattern)?.[0]}"`);
+        getLogger().info(`[input-sanitization] Detected Template Content: "${content.match(pattern)?.[0]}"`);
         return
       }
     });

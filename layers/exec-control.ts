@@ -1,4 +1,5 @@
 import { Warning } from "../warnings.ts";
+import { getLogger } from "../logger.ts";
 
 export const DANGEROUS_COMMAND_DETECTED = new Warning(
   "Dangerous Command Detected",
@@ -260,7 +261,7 @@ function matchesAnyPattern(text: string, patterns: RegExp[]): boolean {
   return patterns.some(pattern => {
     const match = pattern.test(text);
     if (match) {
-      console.log('debug', `[Exec Control] Pattern matched: ${pattern.source}`);
+      getLogger().info(`[exec-control] Pattern matched: ${pattern.source}`);
     }
     return match;
   });
