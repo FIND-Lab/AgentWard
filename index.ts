@@ -154,34 +154,53 @@ const plugin = {
       if (event.message.role == "toolResult" && config.layers.inputSanitization.enableInputDetection) {
         const warning = inputDetect(event.message.content);
         if (warning) {
-          if (config.layers.inputSanitization.coverContaminatedResponse)
+          const shouldCoverResponse =
+            config.layers.inputSanitization.enableIntervention
+            && !config.layers.inputSanitization.temporaryBlockToolCall
+            && config.layers.inputSanitization.blockHarmfulInput
+            && config.layers.inputSanitization.coverContaminatedResponse;
+
+          if (shouldCoverResponse)
             send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."));
           else
             send_message(state, formatMessageSendingWarning(warning));
 
-          const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
-          getLogger().warn(`[InputSanitization] Detecting ${warning.type}. Blocking future tool calls...`);
+          getLogger().warn(`[InputSanitization] Detecting ${warning.type}.`);
+
           if (config.layers.inputSanitization.enableIntervention) {
             state.warning_queue.push(warning);
-            state.block_tool_call = true;
-            if (config.layers.inputSanitization.coverContaminatedResponse)
-              state.cover_response_by_warning = true;
-          }
-          let content = config.layers.inputSanitization.blockHarmfulInput ? [{
-            type: "text",
-            text: warningText
-          }] : [...event.message.content, {
-            type: "text",
-            text: warningText 
-          }];
-          const message = {
-            ...event.message,
-            content: content
-          };
-          return {
-            block: false,
-            message: message,
-            isError: true
+
+            if (config.layers.inputSanitization.temporaryBlockToolCall) {
+              state.temp_block_tool_call = true;
+              getLogger().warn(`[InputSanitization] ${warning.type}. Temporary blocking tool calls until next assistant response...`);
+            } else {
+              state.block_tool_call = true;
+              getLogger().warn(`[InputSanitization] ${warning.type}. Permanently blocking tool calls until next user input...`);
+
+              const warningText = formatToolResultWarning(warning, config.layers.inputSanitization.blockHarmfulInput);
+              if (config.layers.inputSanitization.blockHarmfulInput) {
+                const content = [{ type: "text", text: warningText }];
+                if (config.layers.inputSanitization.coverContaminatedResponse) {
+                  state.cover_response_by_warning = true;
+                }
+                return {
+                  block: false,
+                  message: {
+                    ...event.message,
+                    content: content
+                  },
+                };
+              } else {
+                const content = [...event.message.content, { type: "text", text: warningText }];
+                return {
+                  block: false,
+                  message: {
+                    ...event.message,
+                    content: content
+                  },
+                };
+              }
+            }
           }
         }
       }
@@ -236,7 +255,7 @@ const plugin = {
       if (level > 0) {
         return {
           block: true,
-          blockReason: warningText,
+          blockReason: warningText, // Interestingly, the blockReason shown in tool result may trigger injection detection.
         };
       }
     });

@@ -25,6 +25,7 @@ export class PluginConfig {
     inputSanitization: {
       enableInputDetection: boolean;
       enableIntervention: boolean;
+      temporaryBlockToolCall: boolean;
       blockHarmfulInput: boolean;
       coverContaminatedResponse: boolean;
     };
@@ -79,6 +80,7 @@ export class PluginConfig {
       inputSanitization: {
         enableInputDetection: true,
         enableIntervention: true,
+        temporaryBlockToolCall: true,
         blockHarmfulInput: false,
         coverContaminatedResponse: false,
       },
@@ -150,6 +152,8 @@ export class PluginConfig {
           config.layers.inputSanitization.enableInputDetection = inputSanitization.enableInputDetection;
         if (typeof inputSanitization.enableIntervention === "boolean")
           config.layers.inputSanitization.enableIntervention = inputSanitization.enableIntervention;
+        if (typeof inputSanitization.temporaryBlockToolCall === "boolean")
+          config.layers.inputSanitization.temporaryBlockToolCall = inputSanitization.temporaryBlockToolCall;
         if (typeof inputSanitization.blockHarmfulInput === "boolean")
           config.layers.inputSanitization.blockHarmfulInput = inputSanitization.blockHarmfulInput;
         if (typeof inputSanitization.coverContaminatedResponse === "boolean")
@@ -300,15 +304,19 @@ export const ConfigSchema = {
     },
     "layers.inputSanitization.enableIntervention": {
       label: "Enable Input Sanitization Intervention",
-      help: "When true, blocks tool calls and covers responses when threats are detected. When false, only logs and sends warnings without intervention.",
+      help: "When true, blocks tool calls and modifies tool result content when threats are detected. When false, only logs and sends warnings without blocking or content modification.",
+    },
+    "layers.inputSanitization.temporaryBlockToolCall": {
+      label: "Temporary Block Tool Call",
+      help: "When true and enableIntervention is true, blocks tool calls only until the next assistant response (level 2). When false, blocks until the next user request (level 3).",
     },
     "layers.inputSanitization.blockHarmfulInput": {
       label: "Block Harmful Input",
-      help: "When true, harmful content is blocked entirely. When false, a warning is appended to the content.",
+      help: "When true and temporaryBlockToolCall is false, replaces the harmful tool result content with a warning. When false, appends a warning to the original content. Only effective when temporaryBlockToolCall is false.",
     },
     "layers.inputSanitization.coverContaminatedResponse": {
       label: "Cover Contaminated Response",
-      help: "When true, replaces the assistant's response (after receiving harmful tool results) with warning messages. Original assistant responses are not persisted.",
+      help: "When true and blockHarmfulInput is true and temporaryBlockToolCall is false, replaces the assistant's response with warning messages. Only effective when both blockHarmfulInput is true and temporaryBlockToolCall is false.",
     },
     "layers.cognitionProtection.enableMemWriteDetection": {
       label: "Enable Memory Write Detection",
