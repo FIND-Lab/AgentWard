@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { completeSimple, type Model, type Api } from "@mariozechner/pi-ai";
 import type {syncLLMRequest, syncLLMResponse } from './model-worker-manager.ts';
+import { decrypt, encrypt, type AesKey } from './crypto-util.ts';
 
 const SHARED_BUFFER_SIZE = 524;
 const DATA_BUFFER_BYTE_OFFSET = 4;
@@ -31,10 +32,11 @@ const data = workerData as {
     debug: boolean;
     logLevel: string;
   };
+  aesKey: AesKey;
   shared: SharedArrayBuffer;
 };
 
-const { tmpDir, config } = data;
+const { tmpDir, config, aesKey } = data;
 const view = new Int32Array(data.shared);
 const dataBuffer = new Uint8Array(data.shared, 4, SHARED_BUFFER_SIZE - 4);
 
@@ -83,8 +85,9 @@ function finishProcessing(
         data: success ? data : undefined,
         error: error,
       };
-      
-      writeFileSync(responseFilePath, JSON.stringify(finalResponse), 'utf-8');
+
+      const encryptedResponse = encrypt(JSON.stringify(finalResponse), aesKey);
+      writeFileSync(responseFilePath, encryptedResponse);
       
       Atomics.or(view, 0, 0b010);
       Atomics.notify(view, 0);
@@ -130,7 +133,8 @@ async function processRequestAsync(): Promise<void> {
       dataBuffer.slice(RESPONSE_FILENAME_DATA_OFFSET, RESPONSE_FILENAME_DATA_OFFSET + responseFileLen)
     );
     
-    const request = JSON.parse(readFileSync(requestFilePath, 'utf-8'));
+    const requestJson = decrypt(new Uint8Array(readFileSync(requestFilePath)), aesKey);
+    const request = JSON.parse(requestJson);
     requestId = request.requestId;
     
     let result: any;

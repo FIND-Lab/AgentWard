@@ -4,6 +4,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getLogger } from "./logger.ts";
 import { type Model, type Context, type SimpleStreamOptions, type AssistantMessage, type UserMessage ,type Api} from "@mariozechner/pi-ai";
+import { generateKey, encrypt, decrypt, type AesKey } from "./crypto-util.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +62,7 @@ export class PersistentWorker {
   private decoder = new TextDecoder();
   private tmpDir: string;
   private timeout: number;
+  private aesKey: AesKey;
 
   constructor(
     options: {
@@ -74,15 +76,17 @@ export class PersistentWorker {
   ) {
     this.tmpDir = options.tmpDir;
     this.timeout = options.config.timeout;
-    
+    this.aesKey = generateKey();
+
     const shared = new SharedArrayBuffer(SHARED_BUFFER_SIZE);
     this.view = new Int32Array(shared);
     this.dataBuffer = new Uint8Array(shared, 4, SHARED_BUFFER_SIZE - 4);
-    
+
     this.worker = new Worker(join(__dirname, 'model-worker.ts'), {
       workerData: {
         tmpDir: options.tmpDir,
         config: options.config,
+        aesKey: this.aesKey,
         shared,
       },
     });
@@ -125,8 +129,9 @@ export class PersistentWorker {
     const responseFilePath = join(this.tmpDir, responseFile);
     
     try {
-      writeFileSync(requestFilePath, JSON.stringify(request), 'utf-8');
-      
+      const encryptedRequest = encrypt(JSON.stringify(request), this.aesKey);
+      writeFileSync(requestFilePath, encryptedRequest);
+
       const requestFileEncoded = this.encoder.encode(requestFile);
       if (requestFileEncoded.length > FILENAME_MAX_LENGTH) {
         getLogger().error(`[WorkerManager] Request filename too long: ${requestFileEncoded.length} > ${FILENAME_MAX_LENGTH}`);
@@ -160,7 +165,9 @@ export class PersistentWorker {
         return null;
       }
       
-      const response = JSON.parse(readFileSync(responseFilePath, 'utf-8')) as WorkerResponse;
+      const responseBuffer = readFileSync(responseFilePath);
+      const responseJson = decrypt(new Uint8Array(responseBuffer), this.aesKey);
+      const response = JSON.parse(responseJson) as WorkerResponse;
       
       return response;
     } catch (error) {
