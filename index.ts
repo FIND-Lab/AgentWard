@@ -25,7 +25,8 @@ function extractToolResultId(message: Record<string, unknown>): string | undefin
   return (message.toolCallId ?? message.toolUseId) as string | undefined;
 }
 
-function send_message(state: SessionState, content: string) {
+function send_message(state: SessionState, content: string, config: PluginConfig) {
+  if (!config.notifications.enableProactiveNotifications) return;
   if (state.channelId && state.targetId)
     spawnSync('openclaw', [
       'message', 'send',
@@ -96,7 +97,7 @@ const plugin = {
           config.layers.foundationScan as FoundationScanConfig
         );
         if (warning) {
-          send_message(state, formatMessageSendingWarning(warning));
+          send_message(state, formatMessageSendingWarning(warning), config);
           getLogger().warn(`[FoundationScan] Malicious skill detected in ${ctx.workspaceDir}:` + JSON.stringify(warning));
 
           if (config.layers.foundationScan.enableIntervention) {
@@ -160,7 +161,7 @@ const plugin = {
             event.message
           );
           if (warning) {
-            send_message(state, formatMessageSendingWarning(warning));
+            send_message(state, formatMessageSendingWarning(warning), config);
             getLogger().warn(`[DecisionAlignment] Decision alignment warning: ${warning.type}`);
             if (config.layers.decisionAlignment.enableIntervention) {
               state.warning_queue.push(warning);
@@ -186,9 +187,9 @@ const plugin = {
               && config.layers.inputSanitization.coverContaminatedResponse;
 
             if (shouldCoverResponse)
-              send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."));
+              send_message(state, formatMessageSendingWarning(warning, "The later contaminated response will not be persisted."), config);
             else
-              send_message(state, formatMessageSendingWarning(warning));
+              send_message(state, formatMessageSendingWarning(warning), config);
 
             getLogger().warn(`[InputSanitization] Detecting ${warning.type}.`);
 
@@ -240,7 +241,7 @@ const plugin = {
       if (config.layers.execControl.enableToolCallDetection) {
         const warning = toolCallDetect(event.toolName, event.params);
         if (warning) {
-          send_message(state, formatMessageSendingWarning(warning));
+          send_message(state, formatMessageSendingWarning(warning), config);
           getLogger().warn(`[ExecControl] Dangerous command detected: ${event.params.command}`);
           if (config.layers.execControl.enableIntervention) {
             instant_warning = warning;
@@ -251,7 +252,7 @@ const plugin = {
       if (config.layers.cognitionProtection.enableMemWriteDetection && !instant_warning) {
         const warning = detectCognitionProtectionAnomaly(event.toolName, event.params);
         if (warning) {
-          send_message(state, formatMessageSendingWarning(warning));
+          send_message(state, formatMessageSendingWarning(warning), config);
           getLogger().warn(`[CognitionProtection] Cognition state anomaly detected: ${event.toolName}`);
           if (config.layers.cognitionProtection.enableIntervention) {
             instant_warning = warning;

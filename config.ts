@@ -45,6 +45,9 @@ export class PluginConfig {
   logging: {
     enableFileLog: boolean;
   };
+  notifications: {
+    enableProactiveNotifications: boolean;
+  };
   worker: {
     timeout: number;
     debug: boolean;
@@ -98,6 +101,9 @@ export class PluginConfig {
     };
     this.logging = {
       enableFileLog: true,
+    };
+    this.notifications = {
+      enableProactiveNotifications: true,
     };
     this.worker = {
       timeout: 60000,
@@ -208,6 +214,14 @@ export class PluginConfig {
       const enableFileLog = (logging as Record<string, unknown>).enableFileLog;
       if (typeof enableFileLog === "boolean") {
         config.logging.enableFileLog = enableFileLog;
+      }
+    }
+
+    const notifications = (raw as Record<string, unknown>).notifications;
+    if (notifications && typeof notifications === "object") {
+      const enable = (notifications as Record<string, unknown>).enableProactiveNotifications;
+      if (typeof enable === "boolean") {
+        config.notifications.enableProactiveNotifications = enable;
       }
     }
 
@@ -339,6 +353,10 @@ export const ConfigSchema = {
     "logging.enableFileLog": {
       label: "Enable File Logging",
       help: "When enabled, all logs are also written to a dedicated JSONL file at $OPENCLAW_STATE_DIR/agentward/logs/agentward.log (defaults to ~/.openclaw/agentward/logs/).",
+    },
+    "notifications.enableProactiveNotifications": {
+      label: "Enable Proactive Notifications",
+      help: "When enabled, AgentWard sends proactive warning messages to the user's messaging app. When disabled, warnings are only logged without sending messages.",
     },
     "worker.timeout": {
       label: "Worker Timeout (ms)",

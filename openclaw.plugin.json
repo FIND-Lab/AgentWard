@@ -166,6 +166,16 @@
           }
         }
       },
+      "notifications": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enableProactiveNotifications": {
+            "type": "boolean",
+            "description": "When enabled, AgentWard sends proactive warning messages to the user's messaging app. When disabled, warnings are only logged without sending messages."
+          }
+        }
+      },
       "worker": {
         "type": "object",
         "additionalProperties": false,
@@ -258,6 +268,10 @@
     "layers.execControl.enableIntervention": {
       "label": "Enable Exec Control Intervention",
       "help": "When true, blocks dangerous tool calls. When false, only logs and sends warnings without blocking."
+    },
+    "notifications.enableProactiveNotifications": {
+      "label": "Enable Proactive Notifications",
+      "help": "When enabled, AgentWard sends proactive warning messages to the user's messaging app. When disabled, warnings are only logged without sending messages."
     },
     "worker.timeout": {
       "label": "Worker Timeout (ms)",
