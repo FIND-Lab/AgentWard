@@ -21,6 +21,7 @@ export class SessionState {
   temp_block_tool_call: boolean;
   warning_queue: Warning[];
   warning_head: number;
+  blockedToolCalls: Set<string>;
   
   historyMessages?: unknown[];
   currentMessages?: unknown[];
@@ -41,6 +42,7 @@ export class SessionState {
     this.temp_block_tool_call = false;
     this.warning_queue = [];
     this.warning_head = 0;
+    this.blockedToolCalls = new Set();
   }
 
   constructor(api: OpenClawPluginApi,event, ctx ) {
