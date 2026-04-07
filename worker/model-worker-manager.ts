@@ -2,9 +2,9 @@ import { Worker } from 'worker_threads';
 import { writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getLogger } from "./logger.ts";
+import { getLogger } from "../util/logger.ts";
 import { type Model, type Context, type SimpleStreamOptions, type AssistantMessage, type UserMessage ,type Api} from "@mariozechner/pi-ai";
-import { generateKey, encrypt, decrypt, type AesKey } from "./crypto-util.ts";
+import { generateKey, encrypt, decrypt, type AesKey } from "../util/crypto-util.ts";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

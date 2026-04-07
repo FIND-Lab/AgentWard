@@ -2,23 +2,23 @@ import { spawnSync } from 'child_process';
 import {type OpenClawPluginApi} from "openclaw/plugin-sdk";
 import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { PluginConfig, ConfigSchema } from "./config.ts";
-import { SessionState } from "./state.ts";
+import { SessionState } from "./core/state.ts";
 import {
   formatUserPrependWarning,
   formatToolResultWarning,
   formatToolCallWarning,
   formatCoverAssistantWarning,
   formatMessageSendingWarning
-} from "./warnings.ts";
+} from "./core/warnings.ts";
 import { detectFoundationScan,type FoundationScanConfig } from "./layers/foundation-scan.ts";
 import { inputDetect } from "./layers/input-sanitization.ts";
 import { detectCognitionProtectionAnomaly } from "./layers/cognition-protection.ts";
 import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
-import { initLogger, getLogger, initFileLog } from "./logger.ts";
-import { PersistentWorker, getWorker, setWorker, restartWorker} from "./model-worker-manager.ts";
-import { Warning } from "./warnings.ts";
-import { handleAgentWardCommand } from "./commands.ts";
+import { initLogger, getLogger, initFileLog } from "./util/logger.ts";
+import { PersistentWorker, getWorker, setWorker, restartWorker} from "./worker/model-worker-manager.ts";
+import { Warning } from "./core/warnings.ts";
+import { handleAgentWardCommand } from "./core/commands.ts";
 
 /** Inline implementation of extractToolResultId — reads toolCallId or toolUseId
  *  from a message object. Mirrors src/agents/tool-call-id.ts:71-83. */

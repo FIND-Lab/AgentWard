@@ -1,8 +1,8 @@
 import type { Warning } from "./warnings.ts";
 import type { Model, Api, ProviderStreamOptions } from "@mariozechner/pi-ai";
 import type { OpenClawConfig, OpenClawPluginApi } from "openclaw/plugin-sdk";
-import { PROVIDER_BASE_URLS, PROVIDER_API_TYPES } from "./map.ts";
-import { getLogger } from "./logger.ts";
+import { PROVIDER_BASE_URLS, PROVIDER_API_TYPES } from "../util/map.ts";
+import { getLogger } from "../util/logger.ts";
 
 export type LlmCallContext = {
   model: Model<Api>;

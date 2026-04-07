@@ -1,4 +1,4 @@
-import { Warning } from "../warnings.ts";
+import { Warning } from "../core/warnings.ts";
 
 export const COGNITIVE_STATE_ANOMALY = new Warning(
   "Cognition State Anomaly Detected",

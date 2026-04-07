@@ -5,9 +5,9 @@ import { loadSkillsFromDir, type Skill } from "@mariozechner/pi-coding-agent";
 import { completeSimple, type Model, type Context, type AssistantMessage } from "@mariozechner/pi-ai";
 import { merge } from "lodash-es";
 import pLimit from "p-limit";
-import { Warning } from "../warnings.ts";
+import { Warning } from "../core/warnings.ts";
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import type { SessionState, LlmCallContext } from "../state.ts";
+import type { SessionState, LlmCallContext } from "../core/state.ts";
 
 export const MALICIOUS_SKILL_DETECTED = new Warning(
   "Malicious Skill Detected",

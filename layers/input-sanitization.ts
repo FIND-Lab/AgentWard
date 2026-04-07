@@ -1,5 +1,5 @@
-import { Warning } from "../warnings.ts";
-import { getLogger } from "../logger.ts";
+import { Warning } from "../core/warnings.ts";
+import { getLogger } from "../util/logger.ts";
 
 export const INJECTION_DETECTED = new Warning(
   "Injection Detected",

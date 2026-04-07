@@ -1,7 +1,7 @@
-import { Warning } from "../warnings.ts";
-import { SessionState } from "../state.ts";
-import { getLogger } from "../logger.ts";
-import { callLLMSimple } from "../model-worker-manager.ts";
+import { Warning } from "../core/warnings.ts";
+import { SessionState } from "../core/state.ts";
+import { getLogger } from "../util/logger.ts";
+import { callLLMSimple } from "../worker/model-worker-manager.ts";
 
 export const DECISION_MISALIGN = new Warning(
   "Decision Misalignment Detected",

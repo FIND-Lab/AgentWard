@@ -1,5 +1,5 @@
-import type { PluginConfig } from "./config.ts";
-import { getLogger } from "./logger.ts";
+import type { PluginConfig } from "../config.ts";
+import { getLogger } from "../util/logger.ts";
 
 type ConfigSetter = (config: PluginConfig) => void;
 

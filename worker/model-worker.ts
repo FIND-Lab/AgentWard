@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { completeSimple, type Model, type Api } from "@mariozechner/pi-ai";
 import type {syncLLMRequest, syncLLMResponse } from './model-worker-manager.ts';
-import { decrypt, encrypt, type AesKey } from './crypto-util.ts';
+import { decrypt, encrypt, type AesKey } from "../util/crypto-util.ts";
 
 const SHARED_BUFFER_SIZE = 524;
 const DATA_BUFFER_BYTE_OFFSET = 4;
