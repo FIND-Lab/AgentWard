@@ -135,7 +135,11 @@ Our roadmap is structured around a multi-layered defense architecture designed t
   - ✅ Heuristic rule-based detection module
   - ✅ Intent risk evaluation system
   - 🚀 Trust-aware risk assessment capabilities
-
+- 🚀 Heterogeneous OS support
+  - ✅ Linux
+  - 🚀 macOS
+  - 🚀 Windows
+  
 #### 🏗️ Foundational Scanning Layer
 - ✅ Global and plugin-level configuration security checks
 - ✅ Semantic malicious skill detection
