@@ -4,6 +4,7 @@ import type { OpenClawConfig, OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { PROVIDER_BASE_URLS, PROVIDER_API_TYPES } from "../util/map.ts";
 import { getLogger } from "../util/logger.ts";
 import type { IntentAnalysisResult } from "../layers/intent-analysis.ts";
+import type { DecisionAlignmentResult } from "../layers/decision-alignment.ts";
 
 export type LlmCallContext = {
   model: Model<Api>;
@@ -29,7 +30,7 @@ export class SessionState {
   systemPrompt?: string;
   decisionAlignmentInfo: string[];
   latestIntentAnalysis?: IntentAnalysisResult;
-  latestIntentAnalysis?: IntentAnalysisResult;
+  latestDecisionAlignment?: DecisionAlignmentResult;
 
   channelId?: string;
   targetId?: string;
@@ -55,6 +56,7 @@ export class SessionState {
     this.currentMessages = [];
     this.decisionAlignmentInfo = [];
     this.latestIntentAnalysis = undefined;
+    this.latestDecisionAlignment = undefined;
 
     const messageProvider = ctx?.messageProvider;
     if (messageProvider?.toLowerCase() == "feishu") {

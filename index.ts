@@ -123,6 +123,7 @@ const plugin = {
         state.currentMessages = [];
         state.decisionAlignmentInfo = [];
         state.latestIntentAnalysis = undefined;
+        state.latestDecisionAlignment = undefined;
       }
 
       if (plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection) {
