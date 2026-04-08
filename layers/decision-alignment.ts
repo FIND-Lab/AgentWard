@@ -2,6 +2,7 @@ import { Warning } from "../core/warnings.ts";
 import { SessionState } from "../core/state.ts";
 import { getLogger } from "../util/logger.ts";
 import { callLLMSimple } from "../worker/model-worker-manager.ts";
+import { formatIntentAnalysis } from "./intent-analysis.ts";
 
 export const DECISION_MISALIGN = new Warning(
   "Decision Misalignment Detected",
@@ -71,10 +72,14 @@ function buildJudgeInput(state: SessionState, assistantMessage: unknown): string
     .filter((message): message is Record<string, unknown> => message !== null);
 
   let userIntent = "No clear user request found.";
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (messages[i].role === "user") {
-      userIntent = shortText(messages[i].content);
-      break;
+  if (state.latestIntentAnalysis) {
+    userIntent = formatIntentAnalysis(state.latestIntentAnalysis);
+  } else {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        userIntent = shortText(messages[i].content);
+        break;
+      }
     }
   }
 

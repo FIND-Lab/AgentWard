@@ -14,6 +14,7 @@ import { detectFoundationScan,type FoundationScanConfig } from "./layers/foundat
 import { inputDetect } from "./layers/input-sanitization.ts";
 import { detectCognitionProtectionAnomaly } from "./layers/cognition-protection.ts";
 import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
+import { analyzeUserIntent } from "./layers/intent-analysis.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
 import { initLogger, getLogger, initFileLog } from "./util/logger.ts";
 import { PersistentWorker, getWorker, setWorker, restartWorker} from "./worker/model-worker-manager.ts";
@@ -37,6 +38,21 @@ function send_message(state: SessionState, content: string) {
     ], { stdio: 'inherit' });
   else
     getLogger().error("[Enforcement] No channel to send message.");
+}
+
+function ensureWorkerRunning() {
+  const worker = getWorker();
+  if (worker && worker.isRunning()) return;
+
+  getLogger().warn('[AgentWard] Worker is not running, restarting...');
+  restartWorker({
+    tmpDir: resolvePreferredOpenClawTmpDir(),
+    config: {
+      timeout: plugin.config!.worker.timeout ?? 60000,
+      debug: plugin.config!.worker.debug ?? false,
+      logLevel: plugin.config!.worker.logLevel ?? 'info',
+    },
+  });
 }
 
 const plugin = {
@@ -106,6 +122,11 @@ const plugin = {
         state.historyMessages = event?.messages;
         state.currentMessages = [];
         state.decisionAlignmentInfo = [];
+        state.latestIntentAnalysis = undefined;
+      }
+
+      if (plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection) {
+        ensureWorkerRunning();
       }
 
       if (plugin.config!.layers.foundationScan.enableFoundationScanDetection && ctx.workspaceDir) {
@@ -164,19 +185,9 @@ const plugin = {
         getLogger().info(`[DecisionAlignment] before_message_write: enabled=${daEnabled}, stopReason=${event.message.stopReason}`);
         if (daEnabled && event.message.stopReason == "toolUse") { // Only check for tool calling
 
-          // Ensure worker is alive before any detection that may use LLM
-          const worker = getWorker();
-          if (!worker || !worker.isRunning()) {
-            getLogger().warn('[AgentWard] Worker is not running, restarting...');
-            restartWorker({
-              tmpDir: resolvePreferredOpenClawTmpDir(),
-              config: {
-                timeout: plugin.config!.worker.timeout ?? 60000,
-                debug: plugin.config!.worker.debug ?? false,
-                logLevel: plugin.config!.worker.logLevel ?? 'info',
-              },
-            });
-          }
+          ensureWorkerRunning();
+
+          analyzeUserIntent(state);
 
           const warning = decisionAlignmentDetect(
             state,

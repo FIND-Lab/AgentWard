@@ -3,6 +3,7 @@ import type { Model, Api, ProviderStreamOptions } from "@mariozechner/pi-ai";
 import type { OpenClawConfig, OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { PROVIDER_BASE_URLS, PROVIDER_API_TYPES } from "../util/map.ts";
 import { getLogger } from "../util/logger.ts";
+import type { IntentAnalysisResult } from "../layers/intent-analysis.ts";
 
 export type LlmCallContext = {
   model: Model<Api>;
@@ -27,6 +28,8 @@ export class SessionState {
   currentMessages?: unknown[];
   systemPrompt?: string;
   decisionAlignmentInfo: string[];
+  latestIntentAnalysis?: IntentAnalysisResult;
+  latestIntentAnalysis?: IntentAnalysisResult;
 
   channelId?: string;
   targetId?: string;
@@ -51,6 +54,7 @@ export class SessionState {
     this.historyMessages = event?.messages;
     this.currentMessages = [];
     this.decisionAlignmentInfo = [];
+    this.latestIntentAnalysis = undefined;
 
     const messageProvider = ctx?.messageProvider;
     if (messageProvider?.toLowerCase() == "feishu") {
