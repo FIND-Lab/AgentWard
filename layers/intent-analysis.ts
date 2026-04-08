@@ -1,6 +1,6 @@
-import { SessionState } from "../state.ts";
-import { getLogger } from "../logger.ts";
-import { callLLMSimple } from "../model-worker-manager.ts";
+import { SessionState } from "../core/state.ts";
+import { getLogger } from "../util/logger.ts";
+import { callLLMSimple } from "../worker/model-worker-manager.ts";
 
 const MAX_TEXT_LEN = 500;
 const MAX_CONTEXT_MESSAGES = 6;

@@ -11,12 +11,6 @@ export type DecisionAlignmentResult = {
   reason: string;
 };
 
-export const DECISION_MISALIGN = new Warning(
-  "Decision Misalignment Detected",
-  "The assistant's response may have deviated from the intended decision path.",
-  ""
-);
-
 const MAX_TEXT_LEN = 400;
 const MAX_TOOL_ARGS_LEN = 200;
 const MAX_CONTEXT_MESSAGES = 4;
@@ -150,18 +144,10 @@ function normalizeJudgeResponse(response: string): DecisionAlignmentResult {
   }
 }
 
-function shouldBlock(result: DecisionAlignmentResult): boolean {
-  return result.alignment === "misaligned";
-}
-
-function buildWarningText(result: DecisionAlignmentResult): string {
-  return formatDecisionAlignmentResult(result);
-}
-
 export function decisionAlignmentDetect(
   state: SessionState,
   assistantMessage: unknown,
-): Warning | null {
+): DecisionAlignmentResult | null {
   if (!state.llmContext) {
     getLogger().error("[DecisionAlignment] LLM context not found for DecisionAlignment Layer");
     return null;
@@ -203,18 +189,18 @@ export function decisionAlignmentDetect(
     state.latestDecisionAlignment = result;
     state.decisionAlignmentInfo.push(text);
 
-    if (shouldBlock(result)) {
-      getLogger().warn("[DecisionAlignment] Judge blocked assistant message: " + text);
-      return new Warning(DECISION_MISALIGN.type, DECISION_MISALIGN.description, buildWarningText(result));
-    }
-
     if (result.alignment === "uncertain") {
       getLogger().warn("[DecisionAlignment] Judge marked assistant message as uncertain: " + text);
-      return null;
+      return result;
+    }
+
+    if (result.alignment === "misaligned") {
+      getLogger().warn("[DecisionAlignment] Judge marked assistant message as misaligned: " + text);
+      return result;
     }
 
     getLogger().info("[DecisionAlignment] Judge allowed assistant message: " + text);
-    return null;
+    return result;
   } catch (err) {
     getLogger().error(`[DecisionAlignment] Error in DecisionAlignment Layer: ${JSON.stringify(err)}`);
     return null;

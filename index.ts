@@ -14,6 +14,7 @@ import { detectFoundationScan,type FoundationScanConfig } from "./layers/foundat
 import { inputDetect } from "./layers/input-sanitization.ts";
 import { detectCognitionProtectionAnomaly } from "./layers/cognition-protection.ts";
 import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
+import { dynamicResultAnalysis } from "./layers/dynamic-result-analysis.ts";
 import { analyzeUserIntent } from "./layers/intent-analysis.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
 import { initLogger, getLogger, initFileLog } from "./util/logger.ts";
@@ -190,16 +191,25 @@ const plugin = {
 
           analyzeUserIntent(state);
 
-          const warning = decisionAlignmentDetect(
+          const result = decisionAlignmentDetect(
             state,
             event.message
           );
-          if (warning) {
+          const action = dynamicResultAnalysis(result);
+          getLogger().info(`[DynamicResultAnalysis] disposition=${action.disposition}\n${action.details}`);
+
+          if (action.warning) {
+            const warning = action.warning;
             send_message(state, formatMessageSendingWarning(warning));
-            getLogger().warn(`[DecisionAlignment] Decision alignment warning: ${warning.type}`);
             if (plugin.config!.layers.decisionAlignment.enableIntervention) {
               state.warning_queue.push(warning);
-              state.temp_block_tool_call = true;
+              if (action.disposition === "block") {
+                state.block_tool_call = true;
+                getLogger().warn(`[DynamicResultAnalysis] Blocking tool calls due to ${warning.type}`);
+              } else if (action.disposition === "review") {
+                state.temp_block_tool_call = true;
+                getLogger().warn(`[DynamicResultAnalysis] Temporary review hold due to ${warning.type}`);
+              }
             }
           }
         }
