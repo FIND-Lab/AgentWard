@@ -103,13 +103,6 @@ function buildJudgeInput(state: SessionState, assistantMessage: unknown): string
   ].join("\n");
 }
 
-function normalizeLevel(
-  value: unknown,
-  fallback: "low" | "medium" | "high",
-): "low" | "medium" | "high" {
-  return value === "low" || value === "medium" || value === "high" ? value : fallback;
-}
-
 function formatDecisionAlignmentResult(result: DecisionAlignmentResult): string {
   return [
     `alignment: ${result.alignment}`,
@@ -120,26 +113,31 @@ function formatDecisionAlignmentResult(result: DecisionAlignmentResult): string 
 }
 
 function normalizeJudgeResponse(response: string): DecisionAlignmentResult {
+  const cleaned = response.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   try {
-    const parsed = JSON.parse(response) as Record<string, unknown>;
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
     const alignment = parsed.alignment === "aligned" || parsed.alignment === "uncertain" || parsed.alignment === "misaligned"
       ? parsed.alignment
       : "uncertain";
+    const deviationLevel = parsed.deviationLevel === "low" || parsed.deviationLevel === "medium" || parsed.deviationLevel === "high"
+      ? parsed.deviationLevel
+      : alignment === "misaligned" ? "medium" : "low";
+    const confidence = parsed.confidence === "low" || parsed.confidence === "medium" || parsed.confidence === "high"
+      ? parsed.confidence
+      : "medium";
 
     return {
       alignment,
-      deviationLevel: normalizeLevel(parsed.deviationLevel, alignment === "misaligned" ? "medium" : "low"),
-      confidence: normalizeLevel(parsed.confidence, "medium"),
+      deviationLevel,
+      confidence,
       reason: typeof parsed.reason === "string" ? parsed.reason.trim() : shortText(response, 160),
     };
   } catch {
-    const verdict = response.match(/VERDICT\s*:\s*(OK|BLOCKED)/i)?.[1]?.toUpperCase() ?? "OK";
-    const reason = response.match(/REASON\s*:\s*([^\n\r]+)/i)?.[1]?.trim() ?? shortText(response, 160);
     return {
-      alignment: verdict === "BLOCKED" ? "misaligned" : "aligned",
-      deviationLevel: verdict === "BLOCKED" ? "high" : "low",
-      confidence: "medium",
-      reason,
+      alignment: "uncertain",
+      deviationLevel: "medium",
+      confidence: "low",
+      reason: shortText(cleaned, 160),
     };
   }
 }
@@ -189,17 +187,10 @@ export function decisionAlignmentDetect(
     state.latestDecisionAlignment = result;
     state.decisionAlignmentInfo.push(text);
 
-    if (result.alignment === "uncertain") {
-      getLogger().warn("[DecisionAlignment] Judge marked assistant message as uncertain: " + text);
-      return result;
-    }
-
-    if (result.alignment === "misaligned") {
-      getLogger().warn("[DecisionAlignment] Judge marked assistant message as misaligned: " + text);
-      return result;
-    }
-
-    getLogger().info("[DecisionAlignment] Judge allowed assistant message: " + text);
+    if (result.alignment === "aligned")
+      getLogger().info("[DecisionAlignment] Judge allowed assistant message: " + text);
+    else
+      getLogger().warn(`[DecisionAlignment] Judge marked assistant message as ${result.alignment}: ` + text);
     return result;
   } catch (err) {
     getLogger().error(`[DecisionAlignment] Error in DecisionAlignment Layer: ${JSON.stringify(err)}`);

@@ -61,16 +61,8 @@ function buildIntentInput(state: SessionState): string {
   ].join("\n");
 }
 
-function parseStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 5);
-}
-
 function normalizeIntentResult(raw: string): IntentAnalysisResult {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   const fallback: IntentAnalysisResult = {
     summary: shortText(raw, 160) || "Unknown user intent.",
     goal: "Unknown current goal.",
@@ -82,19 +74,25 @@ function normalizeIntentResult(raw: string): IntentAnalysisResult {
   };
 
   try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
     const riskLevel = parsed.riskLevel === "low" || parsed.riskLevel === "medium" || parsed.riskLevel === "high"
       ? parsed.riskLevel
       : "medium";
     const confidence = parsed.confidence === "low" || parsed.confidence === "medium" || parsed.confidence === "high"
       ? parsed.confidence
       : "low";
+    const constraints = Array.isArray(parsed.constraints)
+      ? parsed.constraints.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 5)
+      : [];
+    const sensitiveTargets = Array.isArray(parsed.sensitiveTargets)
+      ? parsed.sensitiveTargets.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 5)
+      : [];
 
     return {
       summary: typeof parsed.summary === "string" ? parsed.summary.trim() : fallback.summary,
       goal: typeof parsed.goal === "string" ? parsed.goal.trim() : fallback.goal,
-      constraints: parseStringArray(parsed.constraints),
-      sensitiveTargets: parseStringArray(parsed.sensitiveTargets),
+      constraints,
+      sensitiveTargets,
       riskLevel,
       confidence,
       rationale: typeof parsed.rationale === "string" ? parsed.rationale.trim() : fallback.rationale,
