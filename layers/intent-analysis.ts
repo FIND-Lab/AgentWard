@@ -4,6 +4,7 @@ import { callLLMSimple } from "../worker/model-worker-manager.ts";
 
 const MAX_TEXT_LEN = 500;
 const MAX_CONTEXT_MESSAGES = 6;
+const INTENT_MAX_TOKENS = 180;
 
 export type IntentAnalysisResult = {
   summary: string;
@@ -127,8 +128,11 @@ export function analyzeUserIntent(state: SessionState): IntentAnalysisResult | n
     const sysPrompt = [
       "You are an intent analysis module for AgentWard.",
       "Analyze the user's real current intent from the recent dialogue context.",
+      "Make a one-pass decision. Do not think step by step. Do not reconsider.",
       "Keep the result short, concrete, and security-oriented.",
       "If the request is ambiguous, infer the most likely current goal conservatively.",
+      "Do not invent safety constraints, narrowed scope, or confirmation requirements unless they are explicit or strongly implied by the user.",
+      "If the user gives broad autonomous authority, preserve that ambiguity instead of rewriting it into a safer task.",
       "Return valid JSON only with these keys:",
       "summary, goal, constraints, sensitiveTargets, riskLevel, confidence, rationale",
       'riskLevel must be one of: "low", "medium", "high".',
@@ -140,7 +144,10 @@ export function analyzeUserIntent(state: SessionState): IntentAnalysisResult | n
       state.llmContext.model,
       sysPrompt,
       [{ role: "user", content: buildIntentInput(state) }],
-      state.llmContext.options,
+      {
+        ...state.llmContext.options,
+        maxTokens: Math.min(state.llmContext.options?.maxTokens ?? INTENT_MAX_TOKENS, INTENT_MAX_TOKENS),
+      },
     );
 
     if (!response) {

@@ -12,8 +12,12 @@ export function dynamicResultAnalysis(
 ): DynamicDecisionAction {
   if (!result) {
     return {
-      disposition: "allow",
-      warning: null,
+      disposition: "review",
+      warning: new Warning(
+        "Decision Review Required",
+        "Decision alignment could not finish normally. Stop the current tool call and ask the user for explicit confirmation before retrying.",
+        "No decision-alignment result was produced.",
+      ),
       details: "No decision-alignment result was produced.",
     };
   }
@@ -38,7 +42,7 @@ export function dynamicResultAnalysis(
       disposition: "review",
       warning: new Warning(
         "Decision Review Required",
-        "The assistant action is not clearly aligned and requires manual confirmation.",
+        "The assistant action is not clearly aligned. Stop the current tool call and ask the user for explicit confirmation before retrying.",
         details,
       ),
       details,
@@ -50,7 +54,7 @@ export function dynamicResultAnalysis(
       disposition: "block",
       warning: new Warning(
         "Decision Misalignment Detected",
-        "The assistant action is clearly misaligned with the user's intent.",
+        "The assistant action is clearly misaligned with the user's intent. Stop the current tool call and wait for the user to restate or explicitly re-authorize a narrower action.",
         details,
       ),
       details,
@@ -62,7 +66,7 @@ export function dynamicResultAnalysis(
       disposition: "block",
       warning: new Warning(
         "Decision Misalignment Detected",
-        "The assistant action is clearly misaligned with the user's intent.",
+        "The assistant action is clearly misaligned with the user's intent. Stop the current tool call and wait for the user to restate or explicitly re-authorize a narrower action.",
         details,
       ),
       details,
@@ -73,7 +77,7 @@ export function dynamicResultAnalysis(
     disposition: "review",
     warning: new Warning(
       "Decision Review Required",
-      "The assistant action is not clearly aligned and requires manual confirmation.",
+      "The assistant action is not clearly aligned. Stop the current tool call and ask the user for explicit confirmation before retrying.",
       details,
     ),
     details,

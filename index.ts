@@ -13,7 +13,7 @@ import {
 import { detectFoundationScan,type FoundationScanConfig } from "./layers/foundation-scan.ts";
 import { inputDetect } from "./layers/input-sanitization.ts";
 import { detectCognitionProtectionAnomaly } from "./layers/cognition-protection.ts";
-import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
+import { decisionAlignmentDetect, shouldRunDecisionAlignment } from "./layers/decision-alignment.ts";
 import { dynamicResultAnalysis } from "./layers/dynamic-result-analysis.ts";
 import { analyzeUserIntent } from "./layers/intent-analysis.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
@@ -128,7 +128,13 @@ const plugin = {
       }
 
       if (plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection) {
+        const workerReady = !!getWorker()?.isRunning();
         ensureWorkerRunning();
+        if (workerReady) {
+          analyzeUserIntent(state);
+        } else {
+          getLogger().info("[IntentAnalysis] Defer intent analysis until first risky tool-use because worker was just started.");
+        }
       }
 
       if (plugin.config!.layers.foundationScan.enableFoundationScanDetection && ctx.workspaceDir) {
@@ -186,29 +192,34 @@ const plugin = {
         const daEnabled = plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection;
         getLogger().info(`[DecisionAlignment] before_message_write: enabled=${daEnabled}, stopReason=${event.message.stopReason}`);
         if (daEnabled && event.message.stopReason == "toolUse") { // Only check for tool calling
+          if (!state.latestIntentAnalysis) {
+            analyzeUserIntent(state);
+          }
+          if (!shouldRunDecisionAlignment(state, event.message)) {
+            getLogger().info("[DecisionAlignment] Skip LLM judge because current tool call does not match high-risk gate.");
+          } else {
+            ensureWorkerRunning();
 
-          ensureWorkerRunning();
+            const pipelineStart = Date.now();
+            const alignmentStart = Date.now();
+            const result = decisionAlignmentDetect(
+              state,
+              event.message
+            );
+            const alignmentMs = Date.now() - alignmentStart;
+            const dynamicStart = Date.now();
+            const action = dynamicResultAnalysis(result);
+            const dynamicMs = Date.now() - dynamicStart;
+            getLogger().info(`[DynamicResultAnalysis] disposition=${action.disposition}\n${action.details}`);
+            getLogger().info(`[DecisionTiming] intentAnalysisMs=0 alignmentJudgeMs=${alignmentMs} dynamicAnalysisMs=${dynamicMs} totalMs=${Date.now() - pipelineStart} disposition=${action.disposition}`);
 
-          analyzeUserIntent(state);
-
-          const result = decisionAlignmentDetect(
-            state,
-            event.message
-          );
-          const action = dynamicResultAnalysis(result);
-          getLogger().info(`[DynamicResultAnalysis] disposition=${action.disposition}\n${action.details}`);
-
-          if (action.warning) {
-            const warning = action.warning;
-            send_message(state, formatMessageSendingWarning(warning));
-            if (plugin.config!.layers.decisionAlignment.enableIntervention) {
-              state.warning_queue.push(warning);
-              if (action.disposition === "block") {
-                state.block_tool_call = true;
-                getLogger().warn(`[DynamicResultAnalysis] Blocking tool calls due to ${warning.type}`);
-              } else if (action.disposition === "review") {
+            if (action.warning) {
+              const warning = action.warning;
+              send_message(state, formatMessageSendingWarning(warning));
+              if (plugin.config!.layers.decisionAlignment.enableIntervention) {
+                state.warning_queue.push(warning);
                 state.temp_block_tool_call = true;
-                getLogger().warn(`[DynamicResultAnalysis] Temporary review hold due to ${warning.type}`);
+                getLogger().warn(`[DynamicResultAnalysis] Temporary tool-call hold due to ${warning.type}`);
               }
             }
           }
