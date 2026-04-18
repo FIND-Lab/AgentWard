@@ -49,6 +49,9 @@ function buildIntentInput(state: SessionState): string {
     .map(asMessage)
     .filter((message): message is Record<string, unknown> => message !== null);
 
+  const currentPrompt = typeof state.currentPrompt === "string" && state.currentPrompt.trim().length > 0
+    ? state.currentPrompt.trim()
+    : "";
   const recentContext = messages.length === 0
     ? "- none"
     : messages.slice(-MAX_CONTEXT_MESSAGES).map((message) => `- ${summarizeMessage(message)}`).join("\n");
@@ -56,6 +59,9 @@ function buildIntentInput(state: SessionState): string {
   return [
     "Analyze the user's real intent from the recent OpenClaw session context.",
     "Focus on the current task the assistant should follow.",
+    "",
+    "Current user prompt:",
+    currentPrompt || "- none",
     "",
     "Recent context:",
     recentContext,
@@ -74,33 +80,39 @@ function normalizeIntentResult(raw: string): IntentAnalysisResult {
     rationale: "The response could not be parsed as structured intent analysis.",
   };
 
-  try {
-    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
-    const riskLevel = parsed.riskLevel === "low" || parsed.riskLevel === "medium" || parsed.riskLevel === "high"
-      ? parsed.riskLevel
-      : "medium";
-    const confidence = parsed.confidence === "low" || parsed.confidence === "medium" || parsed.confidence === "high"
-      ? parsed.confidence
-      : "low";
-    const constraints = Array.isArray(parsed.constraints)
-      ? parsed.constraints.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 5)
-      : [];
-    const sensitiveTargets = Array.isArray(parsed.sensitiveTargets)
-      ? parsed.sensitiveTargets.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean).slice(0, 5)
-      : [];
+  const values = new Map<string, string>();
+  for (const line of cleaned.split("\n")) {
+    const match = line.match(/^\s*(summary|goal|constraints|sensitiveTargets|riskLevel|confidence|rationale)\s*:\s*(.*)$/i);
+    if (!match) continue;
+    values.set(match[1], match[2].trim());
+  }
 
-    return {
-      summary: typeof parsed.summary === "string" ? parsed.summary.trim() : fallback.summary,
-      goal: typeof parsed.goal === "string" ? parsed.goal.trim() : fallback.goal,
-      constraints,
-      sensitiveTargets,
-      riskLevel,
-      confidence,
-      rationale: typeof parsed.rationale === "string" ? parsed.rationale.trim() : fallback.rationale,
-    };
-  } catch {
+  const splitList = (value: string | undefined) =>
+    (value ?? "")
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+  const summary = values.get("summary");
+  const goal = values.get("goal");
+  const rationale = values.get("rationale");
+  const riskLevel = values.get("riskLevel");
+  const confidence = values.get("confidence");
+
+  if (!summary || !goal || !rationale) {
     return fallback;
   }
+
+  return {
+    summary,
+    goal,
+    constraints: splitList(values.get("constraints")),
+    sensitiveTargets: splitList(values.get("sensitiveTargets")),
+    riskLevel: riskLevel === "low" || riskLevel === "medium" || riskLevel === "high" ? riskLevel : "medium",
+    confidence: confidence === "low" || confidence === "medium" || confidence === "high" ? confidence : "low",
+    rationale,
+  };
 }
 
 export function formatIntentAnalysis(result: IntentAnalysisResult): string {
@@ -124,20 +136,28 @@ export function analyzeUserIntent(state: SessionState): IntentAnalysisResult | n
     return null;
   }
 
+  state.intentAnalysisAttempted = true;
+  const startedAt = Date.now();
   try {
     const sysPrompt = [
       "You are an intent analysis module for AgentWard.",
       "Analyze the user's real current intent from the recent dialogue context.",
       "Make a one-pass decision. Do not think step by step. Do not reconsider.",
       "Keep the result short, concrete, and security-oriented.",
+      "Return exactly these seven lines and nothing else:",
+      "summary: ...",
+      "goal: ...",
+      "constraints: item1; item2; item3",
+      "sensitiveTargets: item1; item2",
+      "riskLevel: low|medium|high",
+      "confidence: low|medium|high",
+      "rationale: ...",
+      "Do not use JSON. Do not use markdown fences. Do not add any explanation before or after the seven lines.",
       "If the request is ambiguous, infer the most likely current goal conservatively.",
       "Do not invent safety constraints, narrowed scope, or confirmation requirements unless they are explicit or strongly implied by the user.",
       "If the user gives broad autonomous authority, preserve that ambiguity instead of rewriting it into a safer task.",
-      "Return valid JSON only with these keys:",
-      "summary, goal, constraints, sensitiveTargets, riskLevel, confidence, rationale",
       'riskLevel must be one of: "low", "medium", "high".',
       'confidence must be one of: "low", "medium", "high".',
-      "constraints and sensitiveTargets must be arrays of short strings.",
     ].join("\n");
 
     const response = callLLMSimple(
@@ -151,15 +171,18 @@ export function analyzeUserIntent(state: SessionState): IntentAnalysisResult | n
     );
 
     if (!response) {
+      state.latestIntentAnalysisMs = Date.now() - startedAt;
       getLogger().error("[IntentAnalysis] No response from LLM in intent analysis");
       return null;
     }
 
     const result = normalizeIntentResult(response);
     state.latestIntentAnalysis = result;
+    state.latestIntentAnalysisMs = Date.now() - startedAt;
     getLogger().info("[IntentAnalysis] " + formatIntentAnalysis(result));
     return result;
   } catch (err) {
+    state.latestIntentAnalysisMs = Date.now() - startedAt;
     getLogger().error(`[IntentAnalysis] Error in intent analysis: ${JSON.stringify(err)}`);
     return null;
   }

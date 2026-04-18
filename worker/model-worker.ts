@@ -53,6 +53,15 @@ function log(level: 'info' | 'warn' | 'error', message: string) {
   }
 }
 
+function notifyReady() {
+  if (parentPort) {
+    parentPort.postMessage({
+      type: 'ready',
+      timestamp: Date.now(),
+    });
+  }
+}
+
 log('info', '[Worker] Started');
 log('info', `[Worker] Config: tmpDir=${tmpDir}, timeout=${config.timeout}, debug=${config.debug}`);
 
@@ -62,6 +71,8 @@ try {
   log('error', `[Worker] Shared memory initialization failed: ${err}`);
   process.exit(1);
 }
+
+notifyReady();
 
 let running = true;
 let processing = false;

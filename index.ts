@@ -41,19 +41,25 @@ function send_message(state: SessionState, content: string) {
     getLogger().error("[Enforcement] No channel to send message.");
 }
 
-function ensureWorkerRunning() {
-  const worker = getWorker();
-  if (worker && worker.isRunning()) return;
+async function ensureWorkerReady() {
+  let worker = getWorker();
+  if (!worker || !worker.isRunning()) {
+    getLogger().warn('[AgentWard] Worker is not running, restarting...');
+    worker = restartWorker({
+      tmpDir: resolvePreferredOpenClawTmpDir(),
+      config: {
+        timeout: plugin.config!.worker.timeout ?? 60000,
+        debug: plugin.config!.worker.debug ?? false,
+        logLevel: plugin.config!.worker.logLevel ?? 'info',
+      },
+    });
+  }
 
-  getLogger().warn('[AgentWard] Worker is not running, restarting...');
-  restartWorker({
-    tmpDir: resolvePreferredOpenClawTmpDir(),
-    config: {
-      timeout: plugin.config!.worker.timeout ?? 60000,
-      debug: plugin.config!.worker.debug ?? false,
-      logLevel: plugin.config!.worker.logLevel ?? 'info',
-    },
-  });
+  const ready = await worker.waitUntilReady(Math.min(plugin.config!.worker.timeout ?? 60000, 5000));
+  if (!ready) {
+    getLogger().warn('[AgentWard] Worker did not become ready before timeout.');
+  }
+  return ready;
 }
 
 const plugin = {
@@ -90,6 +96,7 @@ const plugin = {
         });
         
         setWorker(worker);
+        await worker.waitUntilReady(Math.min(plugin.config!.worker.timeout ?? 60000, 5000));
       },
       stop: async (ctx) => {
         const worker = getWorker();
@@ -122,18 +129,22 @@ const plugin = {
         state.clear_tags();
         state.historyMessages = event?.messages;
         state.currentMessages = [];
+        state.currentPrompt = typeof event?.prompt === "string" ? event.prompt : undefined;
         state.decisionAlignmentInfo = [];
         state.latestIntentAnalysis = undefined;
+        state.latestIntentAnalysisMs = 0;
+        state.intentAnalysisAttempted = false;
         state.latestDecisionAlignment = undefined;
+        state.activeDecisionHold = undefined;
       }
 
       if (plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection) {
-        const workerReady = !!getWorker()?.isRunning();
-        ensureWorkerRunning();
+        const workerReady = await ensureWorkerReady();
         if (workerReady) {
+          getLogger().info("[IntentAnalysis] Run intent analysis in before_prompt_build after ensuring worker readiness.");
           analyzeUserIntent(state);
         } else {
-          getLogger().info("[IntentAnalysis] Defer intent analysis until first risky tool-use because worker was just started.");
+          getLogger().warn("[IntentAnalysis] Worker was not ready in before_prompt_build, fallback to first risky tool-use.");
         }
       }
 
@@ -192,26 +203,40 @@ const plugin = {
         const daEnabled = plugin.config!.layers.decisionAlignment.enableDecisionAlignmentDetection;
         getLogger().info(`[DecisionAlignment] before_message_write: enabled=${daEnabled}, stopReason=${event.message.stopReason}`);
         if (daEnabled && event.message.stopReason == "toolUse") { // Only check for tool calling
-          if (!state.latestIntentAnalysis) {
-            analyzeUserIntent(state);
-          }
-          if (!shouldRunDecisionAlignment(state, event.message)) {
-            getLogger().info("[DecisionAlignment] Skip LLM judge because current tool call does not match high-risk gate.");
-          } else {
-            ensureWorkerRunning();
+          const pipelineStart = Date.now();
+          let result = state.activeDecisionHold;
+          let alignmentMs = 0;
 
-            const pipelineStart = Date.now();
-            const alignmentStart = Date.now();
-            const result = decisionAlignmentDetect(
-              state,
-              event.message
-            );
-            const alignmentMs = Date.now() - alignmentStart;
+          if (result) {
+            getLogger().warn("[DecisionAlignment] Reuse cached non-allow decision for repeated tool-use in the same turn.");
+          } else {
+            if (!state.latestIntentAnalysis && !state.intentAnalysisAttempted) {
+              analyzeUserIntent(state);
+            }
+            if (!shouldRunDecisionAlignment(state, event.message)) {
+              getLogger().info("[DecisionAlignment] Skip LLM judge because current tool call does not match high-risk gate.");
+            } else {
+              const alignmentStart = Date.now();
+              result = decisionAlignmentDetect(
+                state,
+                event.message
+              );
+              alignmentMs = Date.now() - alignmentStart;
+            }
+          }
+
+          if (result) {
             const dynamicStart = Date.now();
             const action = dynamicResultAnalysis(result);
             const dynamicMs = Date.now() - dynamicStart;
             getLogger().info(`[DynamicResultAnalysis] disposition=${action.disposition}\n${action.details}`);
-            getLogger().info(`[DecisionTiming] intentAnalysisMs=0 alignmentJudgeMs=${alignmentMs} dynamicAnalysisMs=${dynamicMs} totalMs=${Date.now() - pipelineStart} disposition=${action.disposition}`);
+            getLogger().info(`[DecisionTiming] intentAnalysisMs=${state.latestIntentAnalysisMs} alignmentJudgeMs=${alignmentMs} dynamicAnalysisMs=${dynamicMs} totalMs=${Date.now() - pipelineStart} disposition=${action.disposition}`);
+
+            if (action.disposition === "allow") {
+              state.activeDecisionHold = undefined;
+            } else {
+              state.activeDecisionHold = result;
+            }
 
             if (action.warning) {
               const warning = action.warning;

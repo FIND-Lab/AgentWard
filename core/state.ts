@@ -27,10 +27,14 @@ export class SessionState {
   
   historyMessages?: unknown[];
   currentMessages?: unknown[];
+  currentPrompt?: string;
   systemPrompt?: string;
   decisionAlignmentInfo: string[];
   latestIntentAnalysis?: IntentAnalysisResult;
+  latestIntentAnalysisMs: number;
+  intentAnalysisAttempted: boolean;
   latestDecisionAlignment?: DecisionAlignmentResult;
+  activeDecisionHold?: DecisionAlignmentResult;
 
   channelId?: string;
   targetId?: string;
@@ -54,9 +58,13 @@ export class SessionState {
 
     this.historyMessages = event?.messages;
     this.currentMessages = [];
+    this.currentPrompt = typeof event?.prompt === "string" ? event.prompt : undefined;
     this.decisionAlignmentInfo = [];
     this.latestIntentAnalysis = undefined;
+    this.latestIntentAnalysisMs = 0;
+    this.intentAnalysisAttempted = false;
     this.latestDecisionAlignment = undefined;
+    this.activeDecisionHold = undefined;
 
     const messageProvider = ctx?.messageProvider;
     if (messageProvider?.toLowerCase() == "feishu") {

@@ -58,11 +58,14 @@ export class PersistentWorker {
   private view: Int32Array;
   private dataBuffer: Uint8Array;
   private running = true;
+  private ready = false;
   private encoder = new TextEncoder();
   private decoder = new TextDecoder();
   private tmpDir: string;
   private timeout: number;
   private aesKey: AesKey;
+  private readyPromise: Promise<boolean>;
+  private resolveReady!: (ready: boolean) => void;
 
   constructor(
     options: {
@@ -77,6 +80,9 @@ export class PersistentWorker {
     this.tmpDir = options.tmpDir;
     this.timeout = options.config.timeout;
     this.aesKey = generateKey();
+    this.readyPromise = new Promise<boolean>((resolve) => {
+      this.resolveReady = resolve;
+    });
 
     const shared = new SharedArrayBuffer(SHARED_BUFFER_SIZE);
     this.view = new Int32Array(shared);
@@ -96,7 +102,11 @@ export class PersistentWorker {
     });
     
     this.worker.on('message', (msg) => {
-      if (msg.type === 'log') {
+      if (msg.type === 'ready') {
+        this.ready = true;
+        this.resolveReady(true);
+        getLogger().info('[WorkerManager] Worker Ready');
+      } else if (msg.type === 'log') {
         if (msg.level === 'warn') {
           getLogger().warn(`[WorkerManager] ${msg.message}`);
         } else if (msg.level === 'error') {
@@ -110,11 +120,15 @@ export class PersistentWorker {
     this.worker.on('error', (err) => {
       getLogger().error(`[WorkerManager] Error: ${err}`);
       this.running = false;
+      this.ready = false;
+      this.resolveReady(false);
     });
     
     this.worker.on('exit', (code) => {
       getLogger().warn(`[WorkerManager] Worker Exit: ${code}`);
       this.running = false;
+      this.ready = false;
+      this.resolveReady(false);
     });
     
     getLogger().info('[WorkerManager] Worker Started');
@@ -200,6 +214,20 @@ export class PersistentWorker {
 
   isRunning(): boolean {
     return this.running;
+  }
+
+  isReady(): boolean {
+    return this.running && this.ready;
+  }
+
+  async waitUntilReady(timeoutMs = 5000): Promise<boolean> {
+    if (this.isReady()) return true;
+    if (!this.running) return false;
+
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), timeoutMs);
+    });
+    return await Promise.race([this.readyPromise, timeoutPromise]);
   }
 }
 
