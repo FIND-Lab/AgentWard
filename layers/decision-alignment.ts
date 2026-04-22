@@ -15,7 +15,42 @@ const MAX_TEXT_LEN = 400;
 const MAX_TOOL_ARGS_LEN = 200;
 const MAX_CONTEXT_MESSAGES = 3;
 const JUDGE_MAX_TOKENS = 220;
-const HIGH_RISK_TEXT_PATTERNS: RegExp[] = [
+const TOOL_CALL_TYPES = new Set([
+  "toolcall",
+  "tool_call",
+  "tool_use",
+  "tooluse",
+  "functioncall",
+  "function_call",
+]);
+const SAFE_SKIP_ALWAYS_TOOL_NAMES = new Set([
+  "list",
+  "glob",
+  "session_status",
+  "agents_list",
+]);
+const SAFE_SKIP_CONDITIONAL_TOOL_NAMES = new Set([
+  "read",
+  "search",
+  "grep",
+]);
+const SAFE_SKIP_TEXT_PATTERNS: RegExp[] = [
+  /\breadme(?:\.md)?\b/,
+  /\bdocs?\b/,
+  /\btests?\b/,
+  /\bsrc\b/,
+  /\blayers\b/,
+  /\bscripts?\b/,
+  /\bexamples?\b/,
+  /\bexperiments?\b/,
+  /\bsummary\b/,
+  /\bconfig\b/,
+  /\bpackage(?:-lock)?\.json\b/,
+  /\btsconfig(?:\.[\w-]+)?\.json\b/,
+  /\b(?:pnpm-lock|yarn\.lock|requirements|pyproject|cargo|makefile|license|changelog)\b/,
+  /(?:^|[\/\\\s])[A-Za-z0-9._-]+\.(?:md|txt|json|jsonc|ya?ml|toml|ini|cfg|conf|ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|css|html|xml|csv)\b/,
+];
+const UNSAFE_SKIP_TEXT_PATTERNS: RegExp[] = [
   /\brm\b/,
   /\bmv\b/,
   /\bcp\b/,
@@ -32,6 +67,13 @@ const HIGH_RISK_TEXT_PATTERNS: RegExp[] = [
   /\bpassword\b/,
   /\benv\b/,
   /\bprintenv\b/,
+  /\bshadow\b/,
+  /\bbash_history\b/,
+  /\bcredentials?\b/,
+  /\bpasswd\b/,
+  /\.env\b/,
+  /\.ssh\b/,
+  /\bid_(?:rsa|dsa|ecdsa|ed25519)\b/,
   /\bdelete\b/,
   /\bremove\b/,
   /\bclean\b/,
@@ -40,8 +82,10 @@ const HIGH_RISK_TEXT_PATTERNS: RegExp[] = [
   /\bcompress\b/,
   /\bwrite\b/,
   /\bedit\b/,
+  /\bhttp[s]?:\/\//,
+  /\bcurl\b/,
+  /\bwget\b/,
 ];
-const HIGH_RISK_TOOL_NAMES = new Set(["exec", "process", "write", "edit", "cron"]);
 
 function shortText(value: unknown, maxLen = MAX_TEXT_LEN): string {
   let text = "";
@@ -76,11 +120,11 @@ function summarizeMessage(message: Record<string, unknown>): string {
       .map((block) => block as Record<string, unknown>)
       .filter((block) => {
         const type = typeof block.type === "string" ? block.type.toLowerCase() : "";
-        return type === "toolcall" || type === "tool_use" || type === "tooluse" || type === "functioncall";
+        return TOOL_CALL_TYPES.has(type);
       })
       .map((block) => {
         const name = typeof block.name === "string" ? block.name : "unknown";
-        const args = block.arguments ?? block.input ?? block.params;
+        const args = block.arguments ?? block.args ?? block.input ?? block.params;
         return args === undefined ? name : `${name} ${shortText(args, MAX_TOOL_ARGS_LEN)}`;
       });
     if (toolCalls.length > 0) return `assistant tool call: ${toolCalls.join("; ")}`;
@@ -140,12 +184,31 @@ function collectToolCalls(message: Record<string, unknown>): Array<{ name: strin
     .map((block) => block as Record<string, unknown>)
     .filter((block) => {
       const type = typeof block.type === "string" ? block.type.toLowerCase() : "";
-      return type === "toolcall" || type === "tool_use" || type === "tooluse" || type === "functioncall";
+      return TOOL_CALL_TYPES.has(type);
     })
     .map((block) => ({
       name: typeof block.name === "string" ? block.name : "unknown",
-      args: shortText(block.arguments ?? block.input ?? block.params, 600),
+      args: shortText(block.arguments ?? block.args ?? block.input ?? block.params, 600),
     }));
+}
+
+function isClearlySafeToolCall(toolCall: { name: string; args: string }): boolean {
+  const name = toolCall.name.toLowerCase();
+  const args = toolCall.args.toLowerCase();
+
+  if (UNSAFE_SKIP_TEXT_PATTERNS.some((pattern) => pattern.test(args))) {
+    return false;
+  }
+
+  if (SAFE_SKIP_ALWAYS_TOOL_NAMES.has(name)) {
+    return true;
+  }
+
+  if (SAFE_SKIP_CONDITIONAL_TOOL_NAMES.has(name)) {
+    return SAFE_SKIP_TEXT_PATTERNS.some((pattern) => pattern.test(args));
+  }
+
+  return false;
 }
 
 export function shouldRunDecisionAlignment(
@@ -160,14 +223,7 @@ export function shouldRunDecisionAlignment(
   const toolCalls = collectToolCalls(target);
   if (toolCalls.length === 0) return false;
 
-  for (const toolCall of toolCalls) {
-    const name = toolCall.name.toLowerCase();
-    const args = toolCall.args.toLowerCase();
-    if (HIGH_RISK_TOOL_NAMES.has(name)) return true;
-    if (HIGH_RISK_TEXT_PATTERNS.some((pattern) => pattern.test(args))) return true;
-  }
-
-  return false;
+  return toolCalls.some((toolCall) => !isClearlySafeToolCall(toolCall));
 }
 
 function formatDecisionAlignmentResult(result: DecisionAlignmentResult): string {
