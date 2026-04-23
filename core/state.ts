@@ -56,6 +56,9 @@ export class SessionState {
     if (messageProvider?.toLowerCase() == "feishu") {
       this.channelId = 'feishu';
       this.targetId = ctx.sessionKey.split(":").pop();
+    } else if (messageProvider?.toLowerCase() == "qqbot") {
+      this.channelId = 'qqbot';
+      this.targetId = ctx.sessionKey.split(":").pop();
     }
   }
 
