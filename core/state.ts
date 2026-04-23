@@ -27,6 +27,7 @@ export class SessionState {
   currentMessages?: unknown[];
   systemPrompt?: string;
   decisionAlignmentInfo: string[];
+  cognitionProtectionInfo: string[];
 
   channelId?: string;
   targetId?: string;
@@ -51,6 +52,7 @@ export class SessionState {
     this.historyMessages = event?.messages;
     this.currentMessages = [];
     this.decisionAlignmentInfo = [];
+    this.cognitionProtectionInfo = [];
 
     const messageProvider = ctx?.messageProvider;
     if (messageProvider?.toLowerCase() == "feishu") {

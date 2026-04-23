@@ -272,7 +272,7 @@ const plugin = {
       }
 
       if (plugin.config!.layers.cognitionProtection.enableMemWriteDetection && !instant_warning) {
-        const warning = detectCognitionProtectionAnomaly(event.toolName, event.params);
+        const warning = detectCognitionProtectionAnomaly(state, event.toolName, event.params);
         if (warning) {
           send_message(state, formatMessageSendingWarning(warning));
           getLogger().warn(`[CognitionProtection] Cognition state anomaly detected: ${event.toolName}`);
