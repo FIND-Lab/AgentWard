@@ -1,4 +1,4 @@
-import { Warning } from "../core/warnings.ts";
+import { Warning, detectBlock, detectApprove, type DetectionResult } from "../core/warnings.ts";
 import { getLogger } from "../util/logger.ts";
 
 export const DANGEROUS_COMMAND_DETECTED = new Warning(
@@ -270,7 +270,7 @@ function matchesAnyPattern(text: string, patterns: RegExp[]): boolean {
 export function toolCallDetect(
   toolName: string,
   params: Record<string, unknown>
-): Warning | null {
+): DetectionResult | null {
   if (toolName !== "exec") return null;
 
   const command = params.command;
@@ -278,37 +278,40 @@ export function toolCallDetect(
 
   // System destruction detection
   if (matchesAnyPattern(command, SYSTEM_DESTRUCTION_PATTERNS)) {
-    return SYSTEM_DESTRUCTION_DETECTED;
+    return detectBlock(SYSTEM_DESTRUCTION_DETECTED);
   }
 
   // Privilege escalation detection
   if (matchesAnyPattern(command, PRIVILEGE_ESCALATION_PATTERNS)) {
-    return PRIVILEGE_ESCALATION_DETECTED;
+    return detectBlock(PRIVILEGE_ESCALATION_DETECTED);
   }
 
   // Remote code execution detection
   if (matchesAnyPattern(command, REMOTE_CODE_EXECUTION_PATTERNS)) {
-    return REMOTE_CODE_EXECUTION_DETECTED;
+    return detectBlock(REMOTE_CODE_EXECUTION_DETECTED);
   }
 
   // Reverse shell detection
   if (matchesAnyPattern(command, REVERSE_SHELL_PATTERNS)) {
-    return REVERSE_SHELL_DETECTED;
+    return detectBlock(REVERSE_SHELL_DETECTED);
   }
 
   // Sensitive data access detection
   if (matchesAnyPattern(command, SENSITIVE_DATA_ACCESS_PATTERNS)) {
-    return SENSITIVE_DATA_ACCESS_DETECTED;
+    // Medium severity: require explicit operator approval.
+    return detectApprove(SENSITIVE_DATA_ACCESS_DETECTED, { timeoutMs: 300000, timeoutBehavior: "deny" });
   }
 
   // Resource exhaustion detection
   if (matchesAnyPattern(command, RESOURCE_EXHAUSTION_PATTERNS)) {
-    return RESOURCE_EXHAUSTION_DETECTED;
+    // Potentially dangerous, but can be legitimate in limited contexts.
+    // For demo policy: require approval instead of auto-deny.
+    return detectApprove(RESOURCE_EXHAUSTION_DETECTED, { timeoutMs: 300000, timeoutBehavior: "deny" });
   }
 
   // Infinite loop detection
   if (matchesAnyPattern(command, INFINITE_LOOP_PATTERNS)) {
-    return INFINITE_LOOP_DETECTED;
+    return detectApprove(INFINITE_LOOP_DETECTED, { timeoutMs: 300000, timeoutBehavior: "deny" });
   }
 
   return null;

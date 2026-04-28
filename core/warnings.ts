@@ -1,3 +1,32 @@
+export type DetectionVerdict = "pass" | "requireApproval" | "block";
+
+export interface DetectionResult {
+  warning: Warning | null;
+  verdict: DetectionVerdict;
+  timeoutMs?: number;
+  timeoutBehavior?: "allow" | "deny";
+}
+
+export function detectPass(): DetectionResult {
+  return { warning: null, verdict: "pass" };
+}
+
+export function detectBlock(warning: Warning): DetectionResult {
+  return { warning, verdict: "block" };
+}
+
+export function detectApprove(
+  warning: Warning,
+  opts?: { timeoutMs?: number; timeoutBehavior?: "allow" | "deny" },
+): DetectionResult {
+  return {
+    warning,
+    verdict: "requireApproval",
+    timeoutMs: opts?.timeoutMs,
+    timeoutBehavior: opts?.timeoutBehavior,
+  };
+}
+
 export class Warning {
   type: string;
   description: string;
@@ -34,16 +63,23 @@ export function formatToolResultWarning(error: Warning | Warning[], blockHarmful
 }
 
 export function formatToolCallWarning(error: Warning | Warning[], level: number): string {
-  switch (level) {
-    case 1: // one-time (only for this tool call)
-      return `${formatBasic(error)}\nYour request for this tool call is rejected.`;
-    case 2: // temporary (until next assistant response)
-      return `${formatBasic(error)}\nYour permission for tool calls has been temporarily suspended. The next assistant response will restore the permission.`;
-    case 3: // permanent (before user's next request)
-      return `${formatBasic(error)}\nYour permission for any tool calls has been revoked. Stop the task immediately and tell the user to request again to recover the permission.`;
-    default:
-      return formatBasic(error);
+  // Backward compatible:
+  // - legacy levels: 1(one-time) / 2(temp) / 3(perm)
+  // - extended levels: 10(one-time) / 15(requireApproval) / 20(temp) / 30(perm)
+  const normalizedLevel =
+    level === 3 ? 30 : level === 2 ? 20 : level === 1 ? 10 : level;
+
+  if (normalizedLevel >= 30) { // permanent (before user's next request)
+    return `${formatBasic(error)}\nYour permission for any tool calls has been revoked. Stop the task immediately and tell the user to request again to recover the permission.`;
+  } else if (normalizedLevel >= 20) { // temporary (until next assistant response)
+    return `${formatBasic(error)}\nYour permission for tool calls has been temporarily suspended. The next assistant response will restore the permission.`;
+  } else if (normalizedLevel >= 15) { // require approval
+    return `${formatBasic(error)}\nThis action requires your confirmation before proceeding.`;
+  } else if (normalizedLevel >= 10) { // one-time (only for this tool call)
+    return `${formatBasic(error)}\nYour request for this tool call is rejected.`;
   }
+
+  return formatBasic(error);
 }
 
 export function formatUserPrependWarning(error: Warning | Warning[], blockToolCall: boolean): string {

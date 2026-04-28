@@ -1,4 +1,5 @@
 import { spawnSync } from 'child_process';
+import { createHash } from "crypto";
 import {type OpenClawPluginApi} from "openclaw/plugin-sdk";
 import { resolvePreferredOpenClawTmpDir } from "openclaw/plugin-sdk/sandbox";
 import { PluginConfig, ConfigSchema } from "./config.ts";
@@ -17,7 +18,7 @@ import { decisionAlignmentDetect } from "./layers/decision-alignment.ts";
 import { toolCallDetect } from "./layers/exec-control.ts";
 import { initLogger, getLogger, initFileLog } from "./util/logger.ts";
 import { PersistentWorker, getWorker, setWorker, restartWorker} from "./worker/model-worker-manager.ts";
-import { Warning } from "./core/warnings.ts";
+import { type Warning, type DetectionResult, detectBlock } from "./core/warnings.ts";
 import { handleAgentWardCommand } from "./core/commands.ts";
 
 /** Inline implementation of extractToolResultId — reads toolCallId or toolUseId
@@ -39,6 +40,31 @@ function send_message(state: SessionState, content: string) {
     getLogger().error("[Enforcement] No channel to send message.");
 }
 
+function clampText(text: string, maxChars: number): string {
+  if (maxChars <= 0) return "";
+  const normalized = text ?? "";
+  if (normalized.length <= maxChars) return normalized;
+  if (maxChars <= 1) return normalized.slice(0, maxChars);
+  return normalized.slice(0, maxChars - 1) + "…";
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || value === undefined) return String(value);
+  if (typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map((v) => stableStringify(v)).join(",")}]`;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(record[k])}`).join(",")}}`;
+}
+
+function computeOperationKey(toolName: string, params: Record<string, unknown>): string {
+  // "Exact match" key: stable stringify + hash for compact storage.
+  // Include toolName because different tools can share param shapes.
+  const raw = `${toolName}:${stableStringify(params)}`;
+  const digest = createHash("sha256").update(raw).digest("hex");
+  return `sha256:${digest}`;
+}
+
 const plugin = {
   id: "agent-ward",
   name: "AgentWard",
@@ -47,6 +73,8 @@ const plugin = {
   config: null as PluginConfig | null,
   startupConfig: null as PluginConfig | null,
   status: new Map<string, SessionState>(),
+  // Example-only: allow-always cache for exact operation matches during this process lifetime.
+  allowAlwaysOps: new Set<string>(),
   register(api: OpenClawPluginApi) {
     initLogger(api);
     if (!plugin.config) {
@@ -258,15 +286,29 @@ const plugin = {
     api.on("before_tool_call", (event, ctx) => {
       const state = plugin.status.get(ctx.sessionKey!)!;
 
+      let instant_result: DetectionResult | null = null;
       let instant_warning: Warning | null = null;
 
+      const baseLevel =
+        state.block_tool_call
+          ? 30
+          : state.temp_block_tool_call || state.warning_queue.length > state.warning_head
+            ? 20
+            : 0;
+
       if (plugin.config!.layers.execControl.enableToolCallDetection) {
-        const warning = toolCallDetect(event.toolName, event.params);
-        if (warning) {
-          send_message(state, formatMessageSendingWarning(warning));
+        const operationKey = computeOperationKey(event.toolName, event.params);
+        if (baseLevel === 0 && plugin.allowAlwaysOps.has(operationKey)) {
+          getLogger().info(`[ExecControl] allow-always match; skipping approval tool=${event.toolName} toolCallId=${event.toolCallId ?? ""}`);
+          return;
+        }
+        const execResult = toolCallDetect(event.toolName, event.params);
+        if (execResult?.warning) {
+          send_message(state, formatMessageSendingWarning(execResult.warning));
           getLogger().warn(`[ExecControl] Dangerous command detected: ${event.params.command}`);
           if (plugin.config!.layers.execControl.enableIntervention) {
-            instant_warning = warning;
+            instant_result = execResult;
+            instant_warning = execResult.warning;
           }
         }
       }
@@ -277,31 +319,98 @@ const plugin = {
           send_message(state, formatMessageSendingWarning(warning));
           getLogger().warn(`[CognitionProtection] Cognition state anomaly detected: ${event.toolName}`);
           if (plugin.config!.layers.cognitionProtection.enableIntervention) {
+            instant_result = detectBlock(warning);
             instant_warning = warning;
           }
         }
       }
 
-      const level = state.block_tool_call ? 3 : state.temp_block_tool_call || state.warning_queue.length > state.warning_head ? 2 : instant_warning ? 1 : 0;
+      const isRequireApproval = instant_result?.verdict === "requireApproval";
+      const level = baseLevel > 0 ? baseLevel : isRequireApproval ? 15 : instant_warning ? 10 : 0;
       
-      if (level == 3)
+      if (level >= 30)
         getLogger().warn(`[Enforcement] Tool call permanently blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
-      else if (level == 2)
+      else if (level >= 20)
         getLogger().warn(`[Enforcement] Tool call temporarily blocked due to ${JSON.stringify(state.warning_queue.slice(state.warning_head))}.`);
 
       let warningText = formatToolCallWarning(state.warning_queue.slice(state.warning_head), level);
       state.warning_head = state.warning_queue.length;
       if (instant_warning) {
-        if (level > 1) {
-          warningText = formatToolCallWarning(instant_warning, 1) + "\n" + warningText;
+        const instantLevel = isRequireApproval ? 15 : 10;
+        if (level > instantLevel) {
+          warningText = formatToolCallWarning(instant_warning, instantLevel) + "\n" + warningText;
           getLogger().warn(`[Enforcement] Additional instant warning for this tool call: ${instant_warning.type}.`);
         } else {
-          warningText = formatToolCallWarning(instant_warning, 1); // level: one-time (only for this tool call)
-          getLogger().warn(`[Enforcement] Tool call one-time blocked due to ${JSON.stringify(instant_warning)}.`);
+          warningText = formatToolCallWarning(instant_warning, instantLevel); // level: one-time / requireApproval
+          if (isRequireApproval) {
+            getLogger().warn(`[Enforcement] Tool call pending approval due to ${JSON.stringify(instant_warning)}.`);
+          } else {
+            getLogger().warn(`[Enforcement] Tool call one-time blocked due to ${JSON.stringify(instant_warning)}.`);
+          }
         }
       }
 
       if (level > 0) {
+        if (instant_result?.verdict === "requireApproval" && baseLevel === 0 && instant_warning) {
+          getLogger().info(`[Enforcement] Tool call requires approval: ${JSON.stringify(instant_warning)}.`);
+          const commandPreview =
+            typeof event.params.command === "string"
+              ? event.params.command
+              : JSON.stringify(event.params);
+          // IMPORTANT: `plugin.approval.request` validates `description` length (<= 256 chars).
+          // Keep this description compact to avoid gateway INVALID_REQUEST failures.
+          //
+          // Previous verbose variant (kept for reference):
+          // const description = `Tool: ${event.toolName}\nCommand: ${commandPreview}\n\n${warningText}`;
+          const toolCallIdLine = event.toolCallId ? `ToolCallId: ${event.toolCallId}` : "";
+          // Keep the approval card/body focused on the exact tool call being approved.
+          // The warning/analysis is already sent via `send_message(...)`.
+          const compactDescription = clampText(
+            [
+              `Tool: ${event.toolName}`,
+              toolCallIdLine,
+              typeof event.params.command === "string" ? `Command: ${commandPreview}` : `Params: ${commandPreview}`,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            240,
+          );
+
+          // Some channels (e.g. QQ) may not surface `requireApproval.description` reliably.
+          // Send the concrete tool call details via proactive message as a fallback.
+          send_message(
+            state,
+            clampText(
+              [
+                `🛡️ AgentWard approval required`,
+                `Type: ${instant_warning.type}`,
+                `Tool: ${event.toolName}`,
+                toolCallIdLine,
+                typeof event.params.command === "string" ? `Command: ${commandPreview}` : `Params: ${commandPreview}`,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              1500,
+            ),
+          );
+
+          const operationKey = computeOperationKey(event.toolName, event.params);
+          return {
+            requireApproval: {
+              title: `AgentWard: ${instant_warning?.type ?? "Approval required"}`,
+              description: compactDescription,
+              severity: "warning",
+              timeoutMs: instant_result.timeoutMs,
+              timeoutBehavior: instant_result.timeoutBehavior,
+              onResolution: (decision) => {
+                if (decision === "allow-always") {
+                  plugin.allowAlwaysOps.add(operationKey);
+                  getLogger().info(`[Approval] allow-always recorded op=${operationKey} tool=${event.toolName}`);
+                }
+              },
+            },
+          };
+        }
         return {
           block: true,
           blockReason: warningText,
