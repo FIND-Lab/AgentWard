@@ -1,6 +1,18 @@
 # AgentWard · 玄甲OS
 
-**AgentWard (玄甲)** is a full-stack security operating system purpose-built for trustworthy, scalable AI agent deployment, with native code adaptation to OpenClaw. AgentWard unifies agent onboarding, secure reasoning, and trusted execution in one cohesive security architecture, with upcoming native support for other leading mainstream agent frameworks. Its heterogeneous defense-in-depth design rearchitects the agent workflow into five coordinated security layers across startup, perception, memory, decision-making, and execution, with dynamic cross-stage protections that verify foundation integrity, block adversarial deception, stop memory tampering, and validate every autonomous decision and high-risk command —  a complete, end-to-end closed security loop that delivers on the promise of "trustworthy at inception, controllable throughout the process, and reliable in outcomes".
+**AgentWard (玄甲)** is a full-stack security operating system purpose-built for trustworthy, scalable AI agent deployment, with native code adaptation to OpenClaw. AgentWard unifies agent onboarding, secure reasoning, and trusted execution in one cohesive security architecture, with upcoming native support for other leading mainstream agent frameworks. Its heterogeneous defense-in-depth design rearchitects the agent workflow into five coordinated security layers across startup, perception, memory, decision-making, and execution, with dynamic cross-stage protections that verify foundation integrity, block adversarial deception, stop memory tampering, and validate every autonomous decision and high-risk command —  a complete, end-to-end closed security loop that delivers on the promise of "trustworthy at inception, controllable throughout the process, and reliable in outcomes". If you find this repo useful, please cite our paper on the design of AgentWard architecture:
+
+```bibtex
+@misc{zhang2026agentwardlifecyclesecurityarchitecture,
+      title={AgentWard: A Lifecycle Security Architecture for Autonomous AI Agents}, 
+      author={Yixiang Zhang and Xinhao Deng and Jiaqing Wu and Yue Xiao and Ke Xu and Qi Li},
+      year={2026},
+      eprint={2604.24657},
+      archivePrefix={arXiv},
+      primaryClass={cs.CR},
+      url={https://arxiv.org/abs/2604.24657}, 
+}
+```
 
 ## Why AgentWard
 
@@ -190,18 +202,3 @@ Our roadmap is structured around a multi-layered defense architecture designed t
 ## Acknowledgements
 
 We would like to thank all the contributors of this repository. They are [Qi Li](https://sites.google.com/site/qili2012), [Xinhao Deng](https://xinhao-deng.github.io/), Yixiang Zhang, Jiaqing Wu, Yue Xiao, Rennai Qiu, Zhuoheng Zou, Jiaqi Bai, Jiaxing Song, and Ke Xu.
-
----
-
-If you find this repo useful, please cite our paper on the design of this security architecture:
-```bibtex
-@misc{zhang2026agentwardlifecyclesecurityarchitecture,
-      title={AgentWard: A Lifecycle Security Architecture for Autonomous AI Agents}, 
-      author={Yixiang Zhang and Xinhao Deng and Jiaqing Wu and Yue Xiao and Ke Xu and Qi Li},
-      year={2026},
-      eprint={2604.24657},
-      archivePrefix={arXiv},
-      primaryClass={cs.CR},
-      url={https://arxiv.org/abs/2604.24657}, 
-}
-```
