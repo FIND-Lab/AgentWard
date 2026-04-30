@@ -48,6 +48,14 @@ export class PluginConfig {
   notifications: {
     enableProactiveNotifications: boolean;
   };
+  approvals: {
+    enableUserApproval: boolean;
+    /**
+     * Approval timeout in milliseconds.
+     * - null: "infinite" (best-effort; upstream gateway may cap this value)
+     */
+    timeoutMs: number | null;
+  };
   worker: {
     timeout: number;
     debug: boolean;
@@ -104,6 +112,11 @@ export class PluginConfig {
     };
     this.notifications = {
       enableProactiveNotifications: true,
+    };
+    this.approvals = {
+      enableUserApproval: true,
+      // Default to a finite timeout (5 min). Users can set <=0 or null for "infinite".
+      timeoutMs: 300000,
     };
     this.worker = {
       timeout: 60000,
@@ -222,6 +235,20 @@ export class PluginConfig {
       const enable = (notifications as Record<string, unknown>).enableProactiveNotifications;
       if (typeof enable === "boolean") {
         config.notifications.enableProactiveNotifications = enable;
+      }
+    }
+
+    const approvals = (raw as Record<string, unknown>).approvals;
+    if (approvals && typeof approvals === "object" && !Array.isArray(approvals)) {
+      const enableUserApproval = (approvals as Record<string, unknown>).enableUserApproval;
+      if (typeof enableUserApproval === "boolean") {
+        config.approvals.enableUserApproval = enableUserApproval;
+      }
+      const timeoutMsRaw = (approvals as Record<string, unknown>).timeoutMs;
+      if (typeof timeoutMsRaw === "number" && Number.isFinite(timeoutMsRaw)) {
+        config.approvals.timeoutMs = timeoutMsRaw > 0 ? Math.trunc(timeoutMsRaw) : null;
+      } else if (timeoutMsRaw === null) {
+        config.approvals.timeoutMs = null;
       }
     }
 
@@ -357,6 +384,14 @@ export const ConfigSchema = {
     "notifications.enableProactiveNotifications": {
       label: "Enable Proactive Notifications",
       help: "When enabled, AgentWard sends proactive warning messages to the user's messaging app. When disabled, warnings are only logged without sending messages.",
+    },
+    "approvals.enableUserApproval": {
+      label: "Enable User Approval",
+      help: "When enabled, AgentWard can pause tool calls and ask the operator to approve. When disabled, approval-required tool calls are denied (fail-closed).",
+    },
+    "approvals.timeoutMs": {
+      label: "Approval Timeout (ms)",
+      help: "Timeout for user approval in milliseconds. Default: 300000 (5 min). Set to 0 or null for 'infinite' (best-effort; upstream may cap).",
     },
     "worker.timeout": {
       label: "Worker Timeout (ms)",

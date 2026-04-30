@@ -65,6 +65,18 @@ function computeOperationKey(toolName: string, params: Record<string, unknown>):
   return `sha256:${digest}`;
 }
 
+function resolveApprovalTimeoutMs(config: PluginConfig): number | undefined {
+  const timeoutMs = config.approvals?.timeoutMs;
+  // Undefined -> let OpenClaw use its default (currently 120s).
+  if (timeoutMs === undefined) return undefined;
+  // null -> "infinite" (best-effort). OpenClaw gateway caps approvals at 10 minutes.
+  // We'll request the maximum cap to approximate infinity.
+  if (timeoutMs === null) return 600000;
+  if (typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0) return Math.trunc(timeoutMs);
+  // <=0 treated as "infinite" in config parser; but be defensive.
+  return 600000;
+}
+
 const plugin = {
   id: "agent-ward",
   name: "AgentWard",
@@ -352,6 +364,13 @@ const plugin = {
 
       if (level > 0) {
         if (instant_result?.verdict === "requireApproval" && baseLevel === 0 && instant_warning) {
+          if (!plugin.config!.approvals.enableUserApproval) {
+            getLogger().warn(`[Enforcement] Approval disabled by config; denying tool call tool=${event.toolName} toolCallId=${event.toolCallId ?? ""}`);
+            return {
+              block: true,
+              blockReason: warningText,
+            };
+          }
           getLogger().info(`[Enforcement] Tool call requires approval: ${JSON.stringify(instant_warning)}.`);
           const commandPreview =
             typeof event.params.command === "string"
@@ -400,7 +419,7 @@ const plugin = {
               title: `AgentWard: ${instant_warning?.type ?? "Approval required"}`,
               description: compactDescription,
               severity: "warning",
-              timeoutMs: instant_result.timeoutMs,
+              timeoutMs: resolveApprovalTimeoutMs(plugin.config!) ?? instant_result.timeoutMs,
               timeoutBehavior: instant_result.timeoutBehavior,
               onResolution: (decision) => {
                 if (decision === "allow-always") {
