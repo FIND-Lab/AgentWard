@@ -82,7 +82,7 @@ export class PersistentWorker {
     this.view = new Int32Array(shared);
     this.dataBuffer = new Uint8Array(shared, 4, SHARED_BUFFER_SIZE - 4);
 
-    this.worker = new Worker(join(__dirname, 'model-worker.ts'), {
+    this.worker = new Worker(new URL('./model-worker.js', import.meta.url), {
       workerData: {
         tmpDir: options.tmpDir,
         config: options.config,

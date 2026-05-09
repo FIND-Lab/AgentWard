@@ -3,6 +3,7 @@ set -euo pipefail
 
 PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_NAME="agent-ward"
+OPENCLAW_CONFIG="${HOME}/.openclaw/openclaw.json"
 
 FORCE=false
 UNINSTALL_ONLY=false
@@ -57,6 +58,36 @@ npm run build
 # proactive channel notifications, which triggers the built-in scanner)
 echo "[3/3] Installing ${PLUGIN_NAME}..."
 openclaw plugins install "${PLUGIN_DIR}" --dangerously-force-unsafe-install --force
+
+# Step 4: Re-apply runtime hook permissions that OpenClaw does not persist
+# across uninstall/reinstall for local plugins.
+echo "[4/4] Ensuring ${PLUGIN_NAME} hook permissions..."
+node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const raw = fs.readFileSync(path, "utf8");
+const cfg = JSON.parse(raw);
+cfg.plugins ??= {};
+cfg.plugins.entries ??= {};
+cfg.plugins.entries["agent-ward"] ??= {};
+cfg.plugins.entries["agent-ward"].enabled = true;
+cfg.plugins.entries["agent-ward"].hooks ??= {};
+cfg.plugins.entries["agent-ward"].hooks.allowConversationAccess = true;
+fs.writeFileSync(path, JSON.stringify(cfg, null, 2) + "\n");
+' "${OPENCLAW_CONFIG}"
+
+echo "[4/4] Verifying ${PLUGIN_NAME} hook permissions..."
+node -e '
+const fs = require("node:fs");
+const path = process.argv[1];
+const raw = fs.readFileSync(path, "utf8");
+const cfg = JSON.parse(raw);
+const ok = cfg.plugins?.entries?.["agent-ward"]?.hooks?.allowConversationAccess === true;
+if (!ok) {
+  console.error("Verification failed: plugins.entries.agent-ward.hooks.allowConversationAccess is not true");
+  process.exit(1);
+}
+' "${OPENCLAW_CONFIG}"
 
 echo ""
 echo "===== Setup Complete ====="
