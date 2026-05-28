@@ -26,7 +26,7 @@ export function inputDetect(content: unknown): Warning | null {
         /<\|end_of_sentence\|>[\s\S]*?<\|User\|>/i,
         /<\|im_end\|>[\s\S]*?<\|im_start\|>/i,
         /<\|EOT\|>[\s\S]*?<\|Instruction\|>/i,
-        /\[\|endofturn\|][\s\S]*?\[|user\|]/i,
+        /\[\|endofturn\|][\s\S]*?\[\|user\|]/i,
         /\[\/INST\][\s\S]*?\[INST\]\[\/INST\]/i,
         /<\/s>[\s\S]*?<s>user[\s\S]*?<\/s>/i,
         /Assistant:[\s\S]*?<\|end_of_sentence\|>User:/i,
@@ -34,7 +34,7 @@ export function inputDetect(content: unknown): Warning | null {
         /<\|end\|>[\s\S]*?<\|user\|>/i,
         /<end_of_turn>\n<start_of_turn>user[\s\S]*?<end_of_turn>\n/i,
         /<\|start_of_role\|>assistant<\|end_of_role\|>[\s\S]*?<\|start_of_role\|>user<\|end_of_role\|>/i,
-        /<|endoftext\|>[\s\S]*?<|endoftext\|>/i,
+        /<\|endoftext\|>[\s\S]*?<\|endoftext\|>/i,
         /<\[begin▁of▁sentence\]><\[end▁of▁sentence\]>/i,
     ];
 
